@@ -1,0 +1,359 @@
+<title>ReviewerFinder — Frontend Build Plan</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  :root {
+    --ink: #1b2027;
+    --ink-soft: #4b5259;
+    --paper: #ece9e1;
+    --surface: #f7f5f0;
+    --surface-raised: #ffffff;
+    --accent: #2a4b7c;
+    --accent-soft: #c9d6e8;
+    --accent-ink: #12233b;
+    --rule: #c7c2b5;
+    --rule-soft: #d9d5c9;
+    --pass: #3f7a4e;
+    --pass-soft: #dfe9e0;
+    --warn: #a3762e;
+    --warn-soft: #ece2d0;
+    --fail: #a34632;
+    --fail-soft: #ecdfda;
+    --radius: 3px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ink: #ede9e1; --ink-soft: #a9aeb4; --paper: #14171b; --surface: #1b1f24;
+      --surface-raised: #21262c; --accent: #8fb0da; --accent-soft: #26364a; --accent-ink: #dbe6f4;
+      --rule: #383d44; --rule-soft: #2a2e34; --pass: #7cc38a; --pass-soft: #223027;
+      --warn: #d3ab6b; --warn-soft: #392f20; --fail: #e0906f; --fail-soft: #35251f;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ink: #ede9e1; --ink-soft: #a9aeb4; --paper: #14171b; --surface: #1b1f24;
+    --surface-raised: #21262c; --accent: #8fb0da; --accent-soft: #26364a; --accent-ink: #dbe6f4;
+    --rule: #383d44; --rule-soft: #2a2e34; --pass: #7cc38a; --pass-soft: #223027;
+    --warn: #d3ab6b; --warn-soft: #392f20; --fail: #e0906f; --fail-soft: #35251f;
+  }
+  :root[data-theme="light"] {
+    --ink: #1b2027; --ink-soft: #4b5259; --paper: #ece9e1; --surface: #f7f5f0;
+    --surface-raised: #ffffff; --accent: #2a4b7c; --accent-soft: #c9d6e8; --accent-ink: #12233b;
+    --rule: #c7c2b5; --rule-soft: #d9d5c9; --pass: #3f7a4e; --pass-soft: #dfe9e0;
+    --warn: #a3762e; --warn-soft: #ece2d0; --fail: #a34632; --fail-soft: #ecdfda;
+  }
+
+  * { box-sizing: border-box; }
+  html { color-scheme: light dark; }
+  body {
+    margin: 0; background: var(--paper); color: var(--ink);
+    font-family: "Segoe UI", "Avenir Next", -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 16px; line-height: 1.55; -webkit-font-smoothing: antialiased;
+  }
+  h1, h2, h3 { font-family: Georgia, "Iowan Old Style", "Palatino Linotype", "Book Antiqua", serif; text-wrap: balance; font-weight: 600; }
+  code, .mono, .mono * { font-family: "Cascadia Code", Consolas, "SF Mono", Menlo, monospace; font-variant-numeric: tabular-nums; }
+  a { color: var(--accent); }
+
+  .topbar {
+    position: sticky; top: 0; z-index: 20;
+    display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+    padding: 0.85rem 1.5rem;
+    background: color-mix(in srgb, var(--paper) 88%, transparent);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--rule);
+  }
+  .topbar .brand { display: flex; align-items: baseline; gap: 0.6rem; }
+  .topbar .brand strong { font-family: Georgia, serif; font-size: 1.05rem; }
+  .topbar .brand span { font-size: 0.78rem; color: var(--ink-soft); }
+  .status-badge {
+    font-size: 0.72rem; letter-spacing: 0.05em; text-transform: uppercase;
+    background: var(--warn-soft); color: var(--warn);
+    border-radius: var(--radius); padding: 0.3rem 0.6rem; font-weight: 600;
+  }
+
+  main { max-width: 880px; margin: 0 auto; padding: 2.6rem 1.5rem 5rem; }
+
+  .thesis h1 { font-size: 1.85rem; margin: 0 0 0.5rem; }
+  .thesis p { max-width: 66ch; color: var(--ink-soft); margin: 0; }
+
+  .decision-line {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 0.8rem; margin: 1.6rem 0 2.6rem;
+  }
+  .decision-line .d {
+    background: var(--surface); border: 1px solid var(--rule); border-radius: var(--radius);
+    padding: 0.8rem 0.95rem;
+  }
+  .decision-line .d .eyebrow { margin-bottom: 0.3rem; }
+  .decision-line .d p { margin: 0; font-size: 0.85rem; color: var(--ink-soft); }
+
+  .eyebrow {
+    font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--accent); font-weight: 600; margin: 0 0 0.3rem;
+  }
+  h2.section-title { font-size: 1.3rem; margin: 2.6rem 0 0.35rem; }
+  h2.section-title:first-of-type { margin-top: 0; }
+  .section-lede { color: var(--ink-soft); max-width: 66ch; margin: 0 0 1.3rem; font-size: 0.95rem; }
+
+  /* ---------- architecture diagram ---------- */
+  .arch {
+    display: flex; align-items: stretch; gap: 0; flex-wrap: wrap;
+    background: var(--surface); border: 1px solid var(--rule); border-radius: var(--radius);
+    padding: 1.4rem; margin-bottom: 2.2rem;
+  }
+  .arch .node {
+    background: var(--surface-raised); border: 1px solid var(--rule); border-radius: var(--radius);
+    padding: 0.8rem 1rem; min-width: 150px; text-align: center;
+  }
+  .arch .node b { display: block; font-family: Georgia, serif; font-size: 0.95rem; }
+  .arch .node small { color: var(--ink-soft); font-size: 0.74rem; }
+  .arch .node.new { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+  .arch .link {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 0 0.9rem; color: var(--ink-soft); font-size: 0.72rem; text-align: center; min-width: 90px;
+  }
+  .arch .link .arrow { font-size: 1.1rem; line-height: 1; }
+  .arch .stack {
+    display: flex; flex-direction: column; gap: 0.5rem; justify-content: center;
+  }
+  .tag-new {
+    display: inline-block; font-size: 0.65rem; letter-spacing: 0.04em; text-transform: uppercase;
+    background: var(--accent-soft); color: var(--accent-ink); border-radius: var(--radius);
+    padding: 0.1rem 0.4rem; margin-top: 0.35rem;
+  }
+
+  /* ---------- plan parts ---------- */
+  .part {
+    border: 1px solid var(--rule); border-radius: var(--radius); background: var(--surface);
+    margin-bottom: 1.1rem; overflow: hidden;
+  }
+  .part > summary {
+    list-style: none; cursor: pointer; padding: 0.95rem 1.15rem;
+    display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+  }
+  .part > summary::-webkit-details-marker { display: none; }
+  .part > summary .t { display: flex; flex-direction: column; gap: 0.15rem; }
+  .part > summary .t b { font-family: Georgia, serif; font-size: 1.05rem; }
+  .part > summary .t small { color: var(--ink-soft); font-size: 0.82rem; }
+  .part > summary .chev { color: var(--ink-soft); transition: transform 0.15s ease; flex: none; }
+  .part[open] > summary .chev { transform: rotate(90deg); }
+  @media (prefers-reduced-motion: reduce) { .part > summary .chev { transition: none; } }
+  .part .body { padding: 0 1.15rem 1.1rem; border-top: 1px solid var(--rule-soft); }
+  .part .body-inner { padding-top: 0.9rem; }
+
+  .file-list { list-style: none; margin: 0 0 1rem; padding: 0; font-size: 0.88rem; }
+  .file-list li { padding: 0.55rem 0; border-top: 1px solid var(--rule-soft); }
+  .file-list li:first-child { border-top: none; }
+  .file-list .path {
+    display: inline-block; background: var(--surface-raised); border: 1px solid var(--rule);
+    border-radius: var(--radius); padding: 0.1rem 0.45rem; font-size: 0.78rem; color: var(--accent-ink);
+    margin-bottom: 0.3rem;
+  }
+  .file-list p { margin: 0; color: var(--ink-soft); }
+
+  .endpoint-table { width: 100%; border-collapse: collapse; font-size: 0.84rem; margin: 0.9rem 0 0; }
+  .endpoint-table th {
+    text-align: left; color: var(--ink-soft); font-weight: 600; font-size: 0.7rem;
+    letter-spacing: 0.04em; text-transform: uppercase; padding-bottom: 0.4rem;
+  }
+  .endpoint-table td { padding: 0.4rem 0.6rem 0.4rem 0; border-top: 1px solid var(--rule-soft); }
+  .endpoint-table .method {
+    font-size: 0.72rem; font-weight: 700; border-radius: var(--radius); padding: 0.1rem 0.4rem;
+  }
+  .method.get { background: var(--pass-soft); color: var(--pass); }
+  .method.post { background: var(--accent-soft); color: var(--accent-ink); }
+  .table-scroll { overflow-x: auto; }
+
+  .page-list { list-style: none; margin: 0.9rem 0 0; padding: 0; font-size: 0.88rem; }
+  .page-list li { padding: 0.6rem 0; border-top: 1px solid var(--rule-soft); }
+  .page-list li:first-child { border-top: none; }
+  .page-list b { font-family: Georgia, serif; }
+  .page-list p { margin: 0.2rem 0 0; color: var(--ink-soft); }
+
+  .pill {
+    display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.78rem;
+    padding: 0.2rem 0.55rem; border-radius: var(--radius);
+  }
+  .pill.warn { background: var(--warn-soft); color: var(--warn); }
+
+  .out-of-scope { list-style: none; margin: 0; padding: 0; font-size: 0.88rem; }
+  .out-of-scope li {
+    display: flex; gap: 0.6rem; padding: 0.5rem 0; border-top: 1px solid var(--rule-soft);
+    color: var(--ink-soft);
+  }
+  .out-of-scope li:first-child { border-top: none; }
+  .out-of-scope .mark { color: var(--fail); flex: none; }
+
+  .checklist { list-style: none; margin: 0; padding: 0; font-size: 0.9rem; }
+  .checklist li {
+    display: flex; gap: 0.7rem; padding: 0.55rem 0; border-top: 1px solid var(--rule-soft); align-items: baseline;
+  }
+  .checklist li:first-child { border-top: none; }
+  .checklist .n {
+    font-family: Georgia, serif; color: var(--accent); flex: none; width: 1.4rem;
+  }
+
+  .crit-files { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.6rem; }
+  .crit-files span {
+    font-size: 0.78rem; background: var(--surface-raised); border: 1px solid var(--rule);
+    border-radius: var(--radius); padding: 0.25rem 0.55rem; color: var(--accent-ink);
+  }
+
+  footer {
+    max-width: 880px; margin: 0 auto; padding: 1.6rem 1.5rem 3rem;
+    color: var(--ink-soft); font-size: 0.8rem; border-top: 1px solid var(--rule);
+  }
+</style>
+
+<div class="topbar">
+  <div class="brand">
+    <strong>ReviewerFinder</strong>
+    <span>build plan — web frontend</span>
+  </div>
+  <span class="status-badge">Awaiting build</span>
+</div>
+
+<main>
+  <div class="thesis">
+    <h1>Bringing search + browse to the browser</h1>
+    <p>The CLI stays as-is. This plan adds a FastAPI layer over the existing pipeline and repositories, and a React + Vite app in front of it — nothing about the eligibility rules, discovery pipeline, or database changes.</p>
+  </div>
+
+  <div class="decision-line">
+    <div class="d">
+      <div class="eyebrow">Scope</div>
+      <p>Search + browse only. New-search form, past-papers list, paper detail with ranked matches, scholar detail. The chatbot stays CLI-only for now.</p>
+    </div>
+    <div class="d">
+      <div class="eyebrow">Stack</div>
+      <p>React + Vite frontend, talking to a new FastAPI backend. A real SPA with routing and component state, not a static page.</p>
+    </div>
+    <div class="d">
+      <div class="eyebrow">Spend gate</div>
+      <p>Running a new search asks for explicit confirmation first, since it spends OpenAlex API budget — same soft-gate as the chatbot's <code>search_new_candidates</code>.</p>
+    </div>
+  </div>
+
+  <h2 class="section-title">Where the new pieces sit</h2>
+  <p class="section-lede">Everything outlined in blue is new. The pipeline, rule engine, and database are untouched — the API layer just calls them.</p>
+
+  <div class="arch">
+    <div class="node new"><b>React SPA</b><small>Vite dev server, :5173</small><div class="tag-new">new</div></div>
+    <div class="link"><span class="arrow">⇄</span>/api proxy</div>
+    <div class="node new"><b>FastAPI</b><small><code>reviewerfinder.cli serve</code>, :8000</small><div class="tag-new">new</div></div>
+    <div class="link"><span class="arrow">→</span>calls</div>
+    <div class="stack">
+      <div class="node"><b>pipeline.run_search()</b><small>unchanged</small></div>
+      <div class="node"><b>db/repository.py</b><small>2 small additions</small></div>
+    </div>
+    <div class="link"><span class="arrow">→</span></div>
+    <div class="stack">
+      <div class="node"><b>SQLite</b><small>reviewerfinder.db</small></div>
+      <div class="node"><b>OpenAlex · Semantic Scholar</b><small>unchanged clients</small></div>
+    </div>
+  </div>
+
+  <h2 class="section-title">Part A — Backend API</h2>
+  <p class="section-lede">A thin FastAPI layer. <code>Paper</code> and <code>Scholar</code> are reused directly as response models — only a few request/list shapes are new.</p>
+
+  <details class="part" open>
+    <summary><span class="t"><b>New endpoints</b><small>backend/src/reviewerfinder/api/routes/</small></span><span class="chev">▸</span></summary>
+    <div class="body"><div class="body-inner">
+      <div class="table-scroll">
+        <table class="endpoint-table mono">
+          <thead><tr><th>Method</th><th>Path</th><th>Returns</th></tr></thead>
+          <tbody>
+            <tr><td><span class="method get">GET</span></td><td>/api/papers</td><td>list[PaperSummary] — newest first</td></tr>
+            <tr><td><span class="method get">GET</span></td><td>/api/papers/{paper_id}</td><td>paper detail + ranked matches (404 if missing)</td></tr>
+            <tr><td><span class="method post">POST</span></td><td>/api/papers/search</td><td>runs the real pipeline → SearchResponse</td></tr>
+            <tr><td><span class="method get">GET</span></td><td>/api/scholars/{scholar_id}</td><td>full Scholar (404 if missing)</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p style="color:var(--ink-soft);font-size:0.85rem;margin:0.9rem 0 0;"><code>POST /api/papers/search</code> is a plain <code>def</code>, not <code>async def</code> — FastAPI runs it in its threadpool automatically, which matters because the pipeline's <code>requests</code> calls are all blocking.</p>
+    </div></div>
+  </details>
+
+  <details class="part">
+    <summary><span class="t"><b>New files</b><small>what gets created, and why</small></span><span class="chev">▸</span></summary>
+    <div class="body"><div class="body-inner">
+      <ul class="file-list mono">
+        <li><span class="path">api/app.py</span><p>Creates the FastAPI app; startup hook runs <code>init_db()</code> and builds one shared OpenAlex/Semantic Scholar client pair on <code>app.state</code>, reused across requests. No CORS middleware — the Vite dev proxy keeps everything on one origin.</p></li>
+        <li><span class="path">api/deps.py</span><p>Dependency functions handing routes a <code>PaperRepository</code> / <code>ScholarRepository</code> / <code>MatchRepository</code>, and the shared clients.</p></li>
+        <li><span class="path">api/schemas.py</span><p><code>SearchRequest</code>, <code>RankedScholar</code>, <code>SearchResponse</code>, <code>PaperSummary</code> — the shapes not already covered by <code>models.py</code>.</p></li>
+        <li><span class="path">api/routes/papers.py · scholars.py</span><p>The four endpoints above.</p></li>
+      </ul>
+    </div></div>
+  </details>
+
+  <details class="part">
+    <summary><span class="t"><b>Small additions to existing files</b><small>everything else is reused as-is</small></span><span class="chev">▸</span></summary>
+    <div class="body"><div class="body-inner">
+      <ul class="file-list mono">
+        <li><span class="path">db/repository.py :: PaperRepository.list_all()</span><p>Mirrors <code>ScholarRepository.list_all()</code>, already added in Phase 3.</p></li>
+        <li><span class="path">db/repository.py :: MatchRepository.passing_count()</span><p>One small aggregate query per paper, used to build the papers list view. Fine as N+1 at this project's personal/local scale.</p></li>
+        <li><span class="path">cli.py :: serve</span><p>New command, same shape as <code>search</code>/<code>refresh</code>/<code>chat</code> — runs <code>uvicorn.run(...)</code> on 127.0.0.1:8000.</p></li>
+        <li><span class="path">pyproject.toml</span><p>New optional group: <code>api = [fastapi, uvicorn[standard]]</code>.</p></li>
+      </ul>
+    </div></div>
+  </details>
+
+  <h2 class="section-title">Part B — Frontend</h2>
+  <p class="section-lede"><code>frontend/</code> goes from a placeholder README to a real Vite + React app, dev-server only for this pass.</p>
+
+  <details class="part" open>
+    <summary><span class="t"><b>Four pages</b><small>src/pages/</small></span><span class="chev">▸</span></summary>
+    <div class="body"><div class="body-inner">
+      <ul class="page-list">
+        <li><b>SearchPage</b> — new-search form. Submitting shows an inline confirm banner before it actually calls the API (the spend gate), then a loading state, then the ranked results with a link to the new paper's detail page.<p>Uses <code>POST /api/papers/search</code></p></li>
+        <li><b>PapersPage</b> — past papers: title, run date, passing count.<p>Uses <code>GET /api/papers</code></p></li>
+        <li><b>PaperDetailPage</b> — one paper's title/abstract/keywords plus its ranked scholar cards.<p>Uses <code>GET /api/papers/{id}</code></p></li>
+        <li><b>ScholarDetailPage</b> — full profile: institution, zone, h-index, email + verification pill, topics, Google Scholar/Scopus links.<p>Uses <code>GET /api/scholars/{id}</code></p></li>
+      </ul>
+    </div></div>
+  </details>
+
+  <details class="part">
+    <summary><span class="t"><b>Shared pieces</b><small>keeping it one design system</small></span><span class="chev">▸</span></summary>
+    <div class="body"><div class="body-inner">
+      <ul class="file-list mono">
+        <li><span class="path">src/components/ScholarCard.jsx</span><p>Same pill/chip visual language as <code>docs/overview.html</code> — semantic color kept separate from the accent, so this doesn't look like a bolted-on second design.</p></li>
+        <li><span class="path">src/api.js</span><p>Thin fetch wrappers for the four endpoints — one place to change the base path later.</p></li>
+        <li><span class="path">vite.config.js</span><p>Dev server on :5173 with a <code>/api</code> proxy to :8000, so the browser only ever talks to one origin.</p></li>
+      </ul>
+    </div></div>
+  </details>
+
+  <h2 class="section-title">Explicitly out of scope</h2>
+  <p class="section-lede">Called out on purpose, not silently skipped.</p>
+  <ul class="out-of-scope">
+    <li><span class="mark">✕</span><span>Chatbot in the browser — separate, larger scope (streaming responses, session handling).</span></li>
+    <li><span class="mark">✕</span><span>Production build/serving — this pass is dev-mode only (<code>vite dev</code> + <code>uvicorn --reload</code> side by side).</span></li>
+    <li><span class="mark">✕</span><span>Authentication — matches the project's local single-user posture so far.</span></li>
+    <li><span class="mark">✕</span><span>Frontend automated tests — no test runner exists yet in <code>frontend/</code>; manual verification only, same as <code>chat</code> was.</span></li>
+  </ul>
+
+  <h2 class="section-title">Testing &amp; verification</h2>
+  <ol class="checklist">
+    <li><span class="n">01</span><span>New <code class="mono">test_api_papers.py</code> / <code class="mono">test_api_scholars.py</code>, using FastAPI's built-in <code>TestClient</code> against a temp DB — same mocking pattern as <code>test_pipeline_e2e_mocked.py</code>, no live calls.</span></li>
+    <li><span class="n">02</span><span><code class="mono">pytest</code> from <code>backend/</code> — new API tests green alongside the existing 81.</span></li>
+    <li><span class="n">03</span><span>Manual: <code class="mono">reviewerfinder serve</code> + <code class="mono">npm run dev</code> side by side, confirm the papers list, run a real search, confirm the spend-gate prompt appears, confirm results render and link through to scholar detail.</span></li>
+  </ol>
+
+  <h2 class="section-title">Critical files</h2>
+  <div class="crit-files mono">
+    <span>api/app.py</span>
+    <span>api/routes/papers.py</span>
+    <span>api/routes/scholars.py</span>
+    <span>api/schemas.py</span>
+    <span>db/repository.py</span>
+    <span>cli.py</span>
+    <span>pyproject.toml</span>
+    <span>frontend/src/App.jsx</span>
+    <span>frontend/src/pages/*.jsx</span>
+    <span>frontend/src/api.js</span>
+  </div>
+</main>
+
+<footer>
+  Plan snapshot — see <code>C:\Users\hp\.claude\plans\i-want-to-design-linked-pascal.md</code> for the source. Nothing in this plan has been built yet.
+</footer>

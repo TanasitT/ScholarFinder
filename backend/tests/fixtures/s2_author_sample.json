@@ -1,0 +1,10 @@
+{
+  "authorId": "2000000001",
+  "name": "Jane Doe",
+  "externalIds": { "ORCID": "0000-0001-2345-6789" },
+  "affiliations": ["MIT"],
+  "homepage": "https://janedoe.example.edu",
+  "paperCount": 118,
+  "citationCount": 5400,
+  "hIndex": 21
+}

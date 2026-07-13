@@ -1,0 +1,705 @@
+<title>ReviewerFinder — Project Overview</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  :root {
+    --ink: #1b2027;
+    --ink-soft: #4b5259;
+    --paper: #ece9e1;
+    --surface: #f7f5f0;
+    --surface-raised: #ffffff;
+    --accent: #2a4b7c;
+    --accent-soft: #c9d6e8;
+    --accent-ink: #12233b;
+    --rule: #c7c2b5;
+    --rule-soft: #d9d5c9;
+    --pass: #3f7a4e;
+    --pass-soft: #dfe9e0;
+    --fail: #a34632;
+    --fail-soft: #ecdfda;
+    --shadow: 0 1px 2px rgba(27, 32, 39, 0.06), 0 8px 24px -12px rgba(27, 32, 39, 0.18);
+    --radius: 3px;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ink: #ede9e1;
+      --ink-soft: #a9aeb4;
+      --paper: #14171b;
+      --surface: #1b1f24;
+      --surface-raised: #21262c;
+      --accent: #8fb0da;
+      --accent-soft: #26364a;
+      --accent-ink: #dbe6f4;
+      --rule: #383d44;
+      --rule-soft: #2a2e34;
+      --pass: #7cc38a;
+      --pass-soft: #223027;
+      --fail: #e0906f;
+      --fail-soft: #35251f;
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px -12px rgba(0, 0, 0, 0.6);
+    }
+  }
+  :root[data-theme="dark"] {
+    --ink: #ede9e1;
+    --ink-soft: #a9aeb4;
+    --paper: #14171b;
+    --surface: #1b1f24;
+    --surface-raised: #21262c;
+    --accent: #8fb0da;
+    --accent-soft: #26364a;
+    --accent-ink: #dbe6f4;
+    --rule: #383d44;
+    --rule-soft: #2a2e34;
+    --pass: #7cc38a;
+    --pass-soft: #223027;
+    --fail: #e0906f;
+    --fail-soft: #35251f;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px -12px rgba(0, 0, 0, 0.6);
+  }
+  :root[data-theme="light"] {
+    --ink: #1b2027;
+    --ink-soft: #4b5259;
+    --paper: #ece9e1;
+    --surface: #f7f5f0;
+    --surface-raised: #ffffff;
+    --accent: #2a4b7c;
+    --accent-soft: #c9d6e8;
+    --accent-ink: #12233b;
+    --rule: #c7c2b5;
+    --rule-soft: #d9d5c9;
+    --pass: #3f7a4e;
+    --pass-soft: #dfe9e0;
+    --fail: #a34632;
+    --fail-soft: #ecdfda;
+    --shadow: 0 1px 2px rgba(27, 32, 39, 0.06), 0 8px 24px -12px rgba(27, 32, 39, 0.18);
+  }
+
+  * { box-sizing: border-box; }
+  html { color-scheme: light dark; }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "Segoe UI", "Avenir Next", -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 16px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1, h2, h3 { font-family: Georgia, "Iowan Old Style", "Palatino Linotype", "Book Antiqua", serif; text-wrap: balance; font-weight: 600; }
+  code, .mono, .mono * { font-family: "Cascadia Code", Consolas, "SF Mono", Menlo, monospace; font-variant-numeric: tabular-nums; }
+
+  a { color: var(--accent); }
+
+  /* ---------- top bar ---------- */
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.85rem 1.5rem;
+    background: color-mix(in srgb, var(--paper) 88%, transparent);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--rule);
+  }
+  .topbar .brand {
+    display: flex;
+    align-items: baseline;
+    gap: 0.6rem;
+  }
+  .topbar .brand strong {
+    font-family: Georgia, serif;
+    font-size: 1.05rem;
+    letter-spacing: 0.01em;
+  }
+  .topbar .brand span {
+    font-size: 0.78rem;
+    color: var(--ink-soft);
+  }
+  .view-toggle {
+    display: inline-flex;
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .view-toggle button {
+    appearance: none;
+    border: 0;
+    background: transparent;
+    color: var(--ink-soft);
+    font: inherit;
+    font-size: 0.82rem;
+    padding: 0.42rem 0.9rem;
+    cursor: pointer;
+    letter-spacing: 0.02em;
+  }
+  .view-toggle button + button { border-left: 1px solid var(--rule); }
+  .view-toggle button[aria-pressed="true"] {
+    background: var(--accent);
+    color: var(--surface-raised);
+  }
+  .view-toggle button:focus-visible,
+  .stage summary:focus-visible,
+  .tool-chip:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  /* ---------- shell ---------- */
+  main { max-width: 880px; margin: 0 auto; padding: 2.6rem 1.5rem 5rem; }
+
+  .thesis h1 { font-size: 1.9rem; margin: 0 0 0.5rem; }
+  .thesis p { max-width: 62ch; color: var(--ink-soft); margin: 0 0 1.1rem; }
+
+  .stat-line {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem 1.4rem;
+    padding: 0.7rem 0;
+    border-top: 1px solid var(--rule);
+    border-bottom: 1px solid var(--rule);
+    font-size: 0.82rem;
+    color: var(--ink-soft);
+  }
+  .stat-line b { color: var(--ink); font-family: Georgia, serif; font-weight: 600; }
+
+  section.view { margin-top: 2.6rem; }
+  section.view[hidden] { display: none; }
+
+  .eyebrow {
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-weight: 600;
+    margin: 0 0 0.3rem;
+  }
+  h2.section-title { font-size: 1.3rem; margin: 0 0 0.35rem; }
+  .section-lede { color: var(--ink-soft); max-width: 62ch; margin: 0 0 1.4rem; font-size: 0.95rem; }
+
+  /* ---------- pipeline diagram ---------- */
+  .pipeline { position: relative; margin: 0 0 3rem; }
+  .pipeline::before {
+    content: "";
+    position: absolute;
+    left: 19px;
+    top: 8px;
+    bottom: 8px;
+    width: 1px;
+    background: var(--rule);
+  }
+  .stage {
+    position: relative;
+    margin-left: 44px;
+    margin-bottom: 0.6rem;
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+  }
+  .stage::before {
+    content: attr(data-n);
+    position: absolute;
+    left: -44px;
+    top: 0.65rem;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: var(--surface-raised);
+    border: 1px solid var(--rule);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: Georgia, serif;
+    font-size: 0.85rem;
+    color: var(--accent);
+  }
+  .stage summary {
+    list-style: none;
+    cursor: pointer;
+    padding: 0.85rem 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+  .stage summary::-webkit-details-marker { display: none; }
+  .stage summary .label {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+  }
+  .stage summary .label b { font-family: Georgia, serif; font-size: 1.02rem; font-weight: 600; }
+  .stage summary .label small { color: var(--ink-soft); font-size: 0.82rem; }
+  .stage summary .chev {
+    color: var(--ink-soft);
+    transition: transform 0.15s ease;
+    flex: none;
+  }
+  .stage[open] summary .chev { transform: rotate(90deg); }
+  .stage .detail {
+    padding: 0 1rem 1rem;
+    border-top: 1px solid var(--rule-soft);
+    padding-top: 0.8rem;
+    font-size: 0.9rem;
+    color: var(--ink-soft);
+  }
+  .stage .detail p { margin: 0 0 0.6rem; }
+  .stage .detail .file {
+    display: inline-block;
+    background: var(--surface-raised);
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+    padding: 0.15rem 0.5rem;
+    font-size: 0.78rem;
+    color: var(--accent-ink);
+  }
+  .stage.branch .detail .outcomes { display: flex; gap: 0.6rem; flex-wrap: wrap; margin-top: 0.6rem; }
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.78rem;
+    padding: 0.2rem 0.55rem;
+    border-radius: var(--radius);
+  }
+  .pill.pass { background: var(--pass-soft); color: var(--pass); }
+  .pill.fail { background: var(--fail-soft); color: var(--fail); }
+  .pill.neutral { background: var(--accent-soft); color: var(--accent-ink); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .stage summary .chev { transition: none; }
+  }
+
+  /* ---------- chatbot flow ---------- */
+  .chat-flow {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    padding: 1.1rem;
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+    margin-bottom: 1rem;
+  }
+  .chat-flow .node {
+    font-family: Georgia, serif;
+    font-size: 0.92rem;
+    background: var(--surface-raised);
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+    padding: 0.5rem 0.8rem;
+  }
+  .chat-flow .arrow { color: var(--ink-soft); font-size: 0.9rem; }
+  .tool-chips { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+  .tool-chip {
+    appearance: none;
+    cursor: pointer;
+    font: inherit;
+    font-size: 0.82rem;
+    background: var(--accent-soft);
+    color: var(--accent-ink);
+    border: 1px solid transparent;
+    border-radius: var(--radius);
+    padding: 0.4rem 0.7rem;
+  }
+  .tool-detail {
+    margin-top: 0.7rem;
+    padding: 0.85rem 1rem;
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-left: 3px solid var(--accent);
+    border-radius: var(--radius);
+    font-size: 0.88rem;
+    color: var(--ink-soft);
+  }
+  .tool-detail[hidden] { display: none; }
+  .tool-detail b { color: var(--ink); }
+
+  /* ---------- technical cards ---------- */
+  .card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2.4rem;
+  }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+    padding: 1.1rem 1.2rem;
+  }
+  .card h3 { font-size: 1rem; margin: 0 0 0.7rem; }
+  .card h3 small { display: block; font-family: "Segoe UI", sans-serif; font-weight: 400; font-size: 0.76rem; color: var(--ink-soft); margin-top: 0.15rem; }
+
+  .kv-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+  .kv-table th { text-align: left; color: var(--ink-soft); font-weight: 600; font-size: 0.72rem; letter-spacing: 0.04em; text-transform: uppercase; padding-bottom: 0.4rem; }
+  .kv-table td { padding: 0.42rem 0; border-top: 1px solid var(--rule-soft); vertical-align: top; }
+  .kv-table td.k { white-space: nowrap; padding-right: 0.9rem; color: var(--accent-ink); }
+  .table-scroll { overflow-x: auto; }
+
+  .rule-list { list-style: none; margin: 0; padding: 0; font-size: 0.9rem; }
+  .rule-list li {
+    display: flex;
+    gap: 0.7rem;
+    padding: 0.55rem 0;
+    border-top: 1px solid var(--rule-soft);
+  }
+  .rule-list li:first-child { border-top: none; }
+  .rule-list .mark { flex: none; width: 1.1rem; color: var(--pass); font-weight: 700; }
+  .rule-list li.override .mark { color: var(--fail); }
+  .rule-list .txt b { display: block; }
+  .rule-list .txt small { color: var(--ink-soft); }
+
+  .schema-card .cols { margin: 0; padding: 0; list-style: none; font-size: 0.82rem; }
+  .schema-card .cols li { padding: 0.2rem 0; border-top: 1px solid var(--rule-soft); display: flex; justify-content: space-between; gap: 0.6rem; }
+  .schema-card .cols li:first-child { border-top: none; }
+  .schema-card .cols li .type { color: var(--ink-soft); }
+  .schema-card .fk { margin-top: 0.6rem; font-size: 0.76rem; color: var(--accent-ink); }
+
+  .tree { font-size: 0.85rem; line-height: 1.7; white-space: pre; }
+  .tree .dim { color: var(--ink-soft); }
+
+  .timeline { list-style: none; margin: 0; padding: 0; }
+  .timeline li {
+    display: flex;
+    gap: 0.9rem;
+    padding: 0.7rem 0;
+    border-top: 1px solid var(--rule-soft);
+    align-items: baseline;
+  }
+  .timeline li:first-child { border-top: none; }
+  .timeline .n { font-family: Georgia, serif; color: var(--ink-soft); width: 1.4rem; flex: none; }
+  .timeline .txt b { display: block; font-size: 0.92rem; }
+  .timeline .txt span { font-size: 0.82rem; color: var(--ink-soft); }
+
+  footer {
+    max-width: 880px;
+    margin: 0 auto;
+    padding: 1.6rem 1.5rem 3rem;
+    color: var(--ink-soft);
+    font-size: 0.8rem;
+    border-top: 1px solid var(--rule);
+  }
+</style>
+
+<div class="topbar">
+  <div class="brand">
+    <strong>ReviewerFinder</strong>
+    <span>project overview</span>
+  </div>
+  <div class="view-toggle" role="tablist" aria-label="Page view">
+    <button type="button" id="tab-workflow" role="tab" aria-pressed="true">Workflow</button>
+    <button type="button" id="tab-technical" role="tab" aria-pressed="false">Technical detail</button>
+  </div>
+</div>
+
+<main>
+  <div class="thesis">
+    <h1>Finding qualified peer reviewers, by rule, not by vibe</h1>
+    <p>Give it a paper's title, abstract, and keywords. It searches the scholarly graph for candidates, applies a fixed set of eligibility rules with no exceptions, scrapes for a contact email without ever guessing one, and keeps every decision — including the rejections — on record.</p>
+  </div>
+
+  <div class="stat-line mono">
+    <span><b>5</b> hard eligibility rules</span>
+    <span><b>2</b> primary data sources</span>
+    <span><b>81</b> automated tests</span>
+    <span><b>3 / 4</b> build phases shipped</span>
+  </div>
+
+  <!-- ===================== WORKFLOW VIEW ===================== -->
+  <section class="view" id="view-workflow">
+    <div class="eyebrow">How a search runs</div>
+    <h2 class="section-title">The batch search pipeline</h2>
+    <p class="section-lede">Eight stages, run in order every time <code>reviewerfinder search</code> is called. Click any stage to see what it does and which file owns it.</p>
+
+    <div class="pipeline">
+      <details class="stage" data-n="1">
+        <summary><span class="label"><b>Input</b><small>Title, abstract, keywords → a new dated search run</small></span><span class="chev">▸</span></summary>
+        <div class="detail">
+          <p>A title (required), abstract, and comma-separated keywords are submitted via the CLI — or, later, by the chatbot re-running a search on an existing paper. This creates a new <code>papers</code> row stamped with today's date, since the schema models each search as its own dated run rather than mutating a paper record in place.</p>
+          <span class="file">pipeline.py :: run_search()</span>
+        </div>
+      </details>
+
+      <details class="stage" data-n="2">
+        <summary><span class="label"><b>Candidate discovery</b><small>Who else writes about this?</small></span><span class="chev">▸</span></summary>
+        <div class="detail">
+          <p>Searches OpenAlex's <code>/works</code> endpoint for papers matching the title/abstract/keywords, then collects the unique set of author IDs who wrote them. This is topic search, not name search — OpenAlex's author endpoint only matches by name, so relevant authors have to be found through their papers instead.</p>
+          <span class="file">discovery/candidate_finder.py</span>
+        </div>
+      </details>
+
+      <details class="stage" data-n="3">
+        <summary><span class="label"><b>Enrichment</b><small>Building a full profile per candidate</small></span><span class="chev">▸</span></summary>
+        <div class="detail">
+          <p>Each candidate's full OpenAlex author record is fetched — h-index, recent-paper counts by year, current institution, country, ORCID — then cross-checked against Semantic Scholar for a second h-index reading and a homepage URL, kept as a fallback lead for the email hunt later.</p>
+          <span class="file">discovery/enrichment.py</span>
+        </div>
+      </details>
+
+      <details class="stage branch" data-n="4">
+        <summary><span class="label"><b>Core-rule filtering</b><small>Zone, institution, output, h-index — email not yet checked</small></span><span class="chev">▸</span></summary>
+        <div class="detail">
+          <p>Four of the five hard rules are evaluated here: country trust-zone, academic-only employer, 8+ papers in the last 5 years, and the zone-dependent h-index bar. Candidates are checked against every rule, not just the first failure, so a rejection's full reasoning is captured at once.</p>
+          <div class="outcomes">
+            <span class="pill pass">passes → sent to email hunt</span>
+            <span class="pill fail">fails → recorded with reasons, dropped before any scraping</span>
+          </div>
+          <span class="file" style="margin-top:0.6rem;display:inline-block;">rules/filters.py :: passes_all_hard_rules(check_email=False)</span>
+        </div>
+      </details>
+
+      <details class="stage" data-n="5">
+        <summary><span class="label"><b>Email hunt</b><small>Scraped, never guessed</small></span><span class="chev">▸</span></summary>
+        <div class="detail">
+          <p>For core-rule passers only. Each scholar's most recent open-access papers are fetched and scanned for an email — HTML landing pages directly, PDF-only papers via text extraction. If nothing turns up, their Semantic Scholar homepage is tried as a fallback. No address is ever constructed from a name-and-institution-domain guess.</p>
+          <span class="file">discovery/email_hunter.py</span>
+        </div>
+      </details>
+
+      <details class="stage branch" data-n="6">
+        <summary><span class="label"><b>Final filtering</b><small>Same rules, email now required</small></span><span class="chev">▸</span></summary>
+        <div class="detail">
+          <p>The same rule check runs again, this time requiring a discovered email too.</p>
+          <div class="outcomes">
+            <span class="pill pass">passes → ranked and shown</span>
+            <span class="pill fail">fails (usually: no email found) → recorded, excluded from output</span>
+          </div>
+          <span class="file" style="margin-top:0.6rem;display:inline-block;">rules/filters.py :: passes_all_hard_rules(check_email=True)</span>
+        </div>
+      </details>
+
+      <details class="stage" data-n="7">
+        <summary><span class="label"><b>Ranking</b><small>Ordering only — never a filter</small></span><span class="chev">▸</span></summary>
+        <div class="detail">
+          <p>Scholars who passed every rule are ordered by how closely their research topics overlap the paper's own title/abstract/keywords. This score never removes anyone — it only decides who's shown first.</p>
+          <span class="file">rules/ranking.py</span>
+        </div>
+      </details>
+
+      <details class="stage" data-n="8">
+        <summary><span class="label"><b>Persist &amp; output</b><small>Every candidate stays on record</small></span><span class="chev">▸</span></summary>
+        <div class="detail">
+          <p>Every evaluated scholar — pass or fail — is written to SQLite along with the specific reasons, so a rejection can be explained later instead of just vanishing. The ranked passers are printed: name, institution, h-index, email, topics, and a Google Scholar / Scopus search link for manual identity confirmation.</p>
+          <span class="file">db/repository.py</span>
+        </div>
+      </details>
+    </div>
+
+    <div class="eyebrow">How a conversation runs</div>
+    <h2 class="section-title">The chatbot flow</h2>
+    <p class="section-lede">The chatbot never decides eligibility itself — it calls the exact same rule engine as the batch pipeline and relays the answer as-is. Click a tool to see what it does.</p>
+
+    <div class="chat-flow">
+      <span class="node">Your question</span>
+      <span class="arrow">→</span>
+      <span class="node">Agent (Claude)</span>
+      <span class="arrow">→</span>
+      <span class="node">picks a tool</span>
+      <span class="arrow">→</span>
+      <span class="node">answer, relayed verbatim</span>
+    </div>
+
+    <div class="tool-chips">
+      <button class="tool-chip" data-tool="lookup_scholar">lookup_scholar</button>
+      <button class="tool-chip" data-tool="lookup_paper">lookup_paper</button>
+      <button class="tool-chip" data-tool="check_scholar_fit">check_scholar_fit</button>
+      <button class="tool-chip" data-tool="list_top_candidates">list_top_candidates</button>
+      <button class="tool-chip" data-tool="search_new_candidates">search_new_candidates</button>
+    </div>
+
+    <div class="tool-detail" id="tool-detail" hidden></div>
+  </section>
+
+  <!-- ===================== TECHNICAL VIEW ===================== -->
+  <section class="view" id="view-technical" hidden>
+    <div class="eyebrow">What it's built with</div>
+    <h2 class="section-title">Tech stack</h2>
+    <p class="section-lede">Every choice picked for a specific reason, not a default.</p>
+
+    <div class="card table-scroll" style="margin-bottom:2.4rem;">
+      <table class="kv-table mono">
+        <thead><tr><th>Role</th><th>Choice</th><th>Why</th></tr></thead>
+        <tbody>
+          <tr><td class="k">Language</td><td>Python 3.11+</td><td>—</td></tr>
+          <tr><td class="k">CLI</td><td>Typer</td><td>thin, typed commands: search / refresh / chat</td></tr>
+          <tr><td class="k">Data models</td><td>Pydantic v2</td><td>validation + clean JSON for chatbot tool output</td></tr>
+          <tr><td class="k">Config</td><td>pydantic-settings</td><td>typed .env loading, fails fast on a missing key</td></tr>
+          <tr><td class="k">Storage</td><td>SQLite</td><td>filtering / staleness / joins are relational; zero services to run</td></tr>
+          <tr><td class="k">HTTP</td><td>requests</td><td>plain clients for OpenAlex + Semantic Scholar</td></tr>
+          <tr><td class="k">Zone data</td><td>PyYAML</td><td>data/seed/zones.yaml</td></tr>
+          <tr><td class="k">Fuzzy match</td><td>RapidFuzz</td><td>chatbot's lookup_scholar by name</td></tr>
+          <tr><td class="k">PDF text</td><td>pypdf</td><td>emails from PDF-only open-access papers</td></tr>
+          <tr><td class="k">Chatbot</td><td>LangChain + LangGraph + langchain-anthropic</td><td>tool-calling agent, Claude as the model</td></tr>
+          <tr><td class="k">Chat memory</td><td>langgraph-checkpoint-sqlite</td><td>conversation survives across CLI runs</td></tr>
+          <tr><td class="k">Tests</td><td>pytest + pytest-mock</td><td>every HTTP call mocked — no live network in the suite</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="eyebrow">What "qualified" means</div>
+    <h2 class="section-title">Eligibility rules</h2>
+    <p class="section-lede">Enforced entirely in Python — never by the chatbot's own judgment.</p>
+
+    <ul class="rule-list" style="margin-bottom:2.4rem;">
+      <li><span class="mark">✓</span><span class="txt"><b>8+ papers in the last 5 years</b><small>recency, not just lifetime output</small></span></li>
+      <li><span class="mark">✓</span><span class="txt"><b>Zone 1 or Zone 2 country</b><small>Zone 3 and any unlisted country default to excluded</small></span></li>
+      <li class="override"><span class="mark">✗</span><span class="txt"><b>Egypt &amp; Saudi Arabia — always excluded</b><small>hardcoded override; wins even if listed under an allowed zone</small></span></li>
+      <li><span class="mark">✓</span><span class="txt"><b>Academic institution only</b><small>not currently employed by a company</small></span></li>
+      <li><span class="mark">✓</span><span class="txt"><b>H-index ≥ 5 (Zone 1) or ≥ 10 (Zone 2)</b><small>threshold scales with country trust zone</small></span></li>
+      <li><span class="mark">✓</span><span class="txt"><b>A discovered email address</b><small>scraped only — never constructed or guessed</small></span></li>
+    </ul>
+
+    <div class="eyebrow">Where it's stored</div>
+    <h2 class="section-title">Data model</h2>
+    <p class="section-lede">Four SQLite tables. Every match — pass or fail — is a row, not just the winners.</p>
+
+    <div class="card-grid">
+      <div class="card schema-card">
+        <h3>papers<small>one row per dated search run</small></h3>
+        <ul class="cols mono">
+          <li><span>id</span><span class="type">pk</span></li>
+          <li><span>title, abstract</span><span class="type">text</span></li>
+          <li><span>keywords_json</span><span class="type">text</span></li>
+          <li><span>run_date</span><span class="type">text</span></li>
+        </ul>
+      </div>
+      <div class="card schema-card">
+        <h3>scholars<small>one row per candidate, keyed by OpenAlex ID</small></h3>
+        <ul class="cols mono">
+          <li><span>id</span><span class="type">pk (OpenAlex id)</span></li>
+          <li><span>display_name, orcid</span><span class="type">text</span></li>
+          <li><span>h_index, works_count_last_5y</span><span class="type">int</span></li>
+          <li><span>current_institution_*, zone</span><span class="type">text</span></li>
+          <li><span>email, email_verification_status</span><span class="type">text</span></li>
+          <li><span>last_checked_at</span><span class="type">text</span></li>
+        </ul>
+      </div>
+      <div class="card schema-card">
+        <h3>affiliation_history<small>a scholar's institutions over time</small></h3>
+        <ul class="cols mono">
+          <li><span>scholar_id</span><span class="type">fk</span></li>
+          <li><span>institution_name, country_code</span><span class="type">text</span></li>
+          <li><span>year_start, year_end</span><span class="type">int</span></li>
+        </ul>
+        <div class="fk">→ scholars.id</div>
+      </div>
+      <div class="card schema-card">
+        <h3>paper_scholar_matches<small>every evaluated candidate, pass or fail</small></h3>
+        <ul class="cols mono">
+          <li><span>paper_id, scholar_id</span><span class="type">fk</span></li>
+          <li><span>relevance_score</span><span class="type">real</span></li>
+          <li><span>passed_hard_rules</span><span class="type">bool</span></li>
+          <li><span>fail_reasons_json</span><span class="type">text</span></li>
+          <li><span>rank_position</span><span class="type">int</span></li>
+        </ul>
+        <div class="fk">→ papers.id, scholars.id</div>
+      </div>
+    </div>
+
+    <div class="eyebrow">Where the code lives</div>
+    <h2 class="section-title">Repository layout</h2>
+    <div class="card table-scroll" style="margin-bottom:2.4rem;">
+      <div class="tree mono">ReviewerFinder/
+├── backend/   <span class="dim"># CLI, pipeline, rule engine, SQLite, chatbot — everything below runs here</span>
+│   ├── src/reviewerfinder/
+│   │   ├── cli.py         <span class="dim"># search / refresh / chat commands</span>
+│   │   ├── pipeline.py    <span class="dim"># orchestrates the 8-stage search</span>
+│   │   ├── clients/       <span class="dim"># OpenAlex, Semantic Scholar, email verifier</span>
+│   │   ├── discovery/     <span class="dim"># candidate finding, enrichment, email hunting</span>
+│   │   ├── rules/         <span class="dim"># eligibility rules, zone mapping, ranking</span>
+│   │   ├── db/             <span class="dim"># SQLite schema + repositories</span>
+│   │   └── chatbot/        <span class="dim"># LangChain agent, tools, session memory</span>
+│   └── tests/               <span class="dim"># 81 tests, unit + fixture-mocked integration</span>
+├── frontend/  <span class="dim"># empty placeholder — no web UI built yet</span>
+└── docs/       <span class="dim"># this page</span></div>
+    </div>
+
+    <div class="eyebrow">Where the project stands</div>
+    <h2 class="section-title">Build phases</h2>
+    <ul class="timeline">
+      <li><span class="n">01</span><span class="txt"><b>Core pipeline</b> <span class="pill pass" style="margin-left:0.4rem;">done</span><br><span>Discovery → enrichment → filter → rank → persist, no email or chatbot yet</span></span></li>
+      <li><span class="n">02</span><span class="txt"><b>Email discovery</b> <span class="pill pass" style="margin-left:0.4rem;">done</span><br><span>Scraping + PDF extraction, no-op verification behind a swappable seam</span></span></li>
+      <li><span class="n">03</span><span class="txt"><b>LangChain chatbot</b> <span class="pill pass" style="margin-left:0.4rem;">done</span><br><span>Five tools over the same rule engine, persistent conversation memory</span></span></li>
+      <li><span class="n">04</span><span class="txt"><b>Web frontend</b> <span class="pill neutral" style="margin-left:0.4rem;">not started</span><br><span>Needs a backend HTTP API first — today only the CLI exists</span></span></li>
+    </ul>
+  </section>
+</main>
+
+<footer>
+  Generated project overview — see <code>README.md</code>, <code>CLAUDE.md</code>, and <code>decision.md</code> in the repository root for full detail.
+</footer>
+
+<script>
+  (function () {
+    "use strict";
+
+    var toggleBtns = {
+      workflow: document.getElementById("tab-workflow"),
+      technical: document.getElementById("tab-technical")
+    };
+    var views = {
+      workflow: document.getElementById("view-workflow"),
+      technical: document.getElementById("view-technical")
+    };
+
+    function showView(name) {
+      Object.keys(views).forEach(function (key) {
+        var isActive = key === name;
+        views[key].hidden = !isActive;
+        toggleBtns[key].setAttribute("aria-pressed", String(isActive));
+      });
+      window.scrollTo({ top: 0, behavior: "instant" in window ? "instant" : "auto" });
+    }
+
+    toggleBtns.workflow.addEventListener("click", function () { showView("workflow"); });
+    toggleBtns.technical.addEventListener("click", function () { showView("technical"); });
+
+    var toolInfo = {
+      lookup_scholar: {
+        title: "lookup_scholar(name_or_id)",
+        body: "Finds a stored scholar by exact OpenAlex ID, or by fuzzy display-name match (RapidFuzz, 70% cutoff) if the ID isn't known. Returns their full profile, or an error if nothing matches."
+      },
+      lookup_paper: {
+        title: "lookup_paper(title_or_id)",
+        body: "Finds a stored paper by numeric ID or exact title. Returns title/abstract/keywords/run_date, or an error if nothing matches."
+      },
+      check_scholar_fit: {
+        title: "check_scholar_fit(scholar_id, paper_id)",
+        body: "The core “is X fit for Y” tool. Refreshes the scholar's data first if it's gone stale (6+ months), then calls the exact same passes_all_hard_rules() the batch pipeline uses. The agent is instructed to report the passed / fail_reasons result verbatim — never to assert eligibility on its own."
+      },
+      list_top_candidates: {
+        title: "list_top_candidates(paper_id, limit)",
+        body: "Lists the already-ranked scholars who passed every rule for a stored paper, most relevant first."
+      },
+      search_new_candidates: {
+        title: "search_new_candidates(paper_id)",
+        body: "Re-runs the full 8-stage pipeline for an already-stored paper. Spends OpenAlex API budget, so the agent is instructed to ask you to confirm first — a soft, prompt-level gate rather than a hard programmatic block."
+      }
+    };
+
+    var chips = document.querySelectorAll(".tool-chip");
+    var detail = document.getElementById("tool-detail");
+
+    chips.forEach(function (chip) {
+      chip.addEventListener("click", function () {
+        var already = chip.getAttribute("aria-pressed") === "true";
+        chips.forEach(function (c) { c.removeAttribute("aria-pressed"); c.style.background = ""; c.style.color = ""; });
+        if (already) {
+          detail.hidden = true;
+          return;
+        }
+        chip.setAttribute("aria-pressed", "true");
+        var info = toolInfo[chip.getAttribute("data-tool")];
+        detail.innerHTML = "<b>" + info.title + "</b><br>" + info.body;
+        detail.hidden = false;
+      });
+    });
+  })();
+</script>

@@ -1,0 +1,29 @@
+{
+  "id": "https://openalex.org/A123456789",
+  "display_name": "Jane Doe",
+  "ids": { "orcid": "https://orcid.org/0000-0001-2345-6789" },
+  "works_count": 120,
+  "summary_stats": { "h_index": 22, "i10_index": 60 },
+  "counts_by_year": [
+    { "year": 2026, "works_count": 3 },
+    { "year": 2025, "works_count": 4 },
+    { "year": 2024, "works_count": 3 },
+    { "year": 2023, "works_count": 2 },
+    { "year": 2022, "works_count": 3 },
+    { "year": 2021, "works_count": 5 },
+    { "year": 2020, "works_count": 4 }
+  ],
+  "last_known_institutions": [
+    { "display_name": "MIT", "country_code": "US", "type": "education" }
+  ],
+  "affiliations": [
+    {
+      "institution": { "display_name": "MIT", "country_code": "US", "type": "education" },
+      "years": [2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025, 2026]
+    }
+  ],
+  "topics": [
+    { "display_name": "protein folding", "value": 0.8 },
+    { "display_name": "deep learning", "value": 0.6 }
+  ]
+}

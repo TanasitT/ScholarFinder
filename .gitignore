@@ -1,0 +1,6 @@
+# backend/ and frontend/ each carry their own .gitignore for their
+# ecosystem-specific artifacts (Python venv/pycache, future node_modules/dist).
+# This root file only covers things that could appear at the repo root.
+.env
+.DS_Store
+Thumbs.db

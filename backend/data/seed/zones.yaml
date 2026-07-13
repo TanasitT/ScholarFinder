@@ -1,0 +1,109 @@
+# Country -> trust zone mapping (ISO 3166-1 alpha-2 codes).
+# Zone 1 = high trust, Zone 2 = medium trust, Zone 3 = low trust (never invited).
+# Any country NOT listed here defaults to Zone 3 ("and the rest") — see
+# zone_of() in rules/zones.py.
+#
+# NOTE: Egypt (EG) and Saudi Arabia (SA) are excluded unconditionally in
+# rules/zones.py regardless of being listed under zone_2 below — that
+# hardcoded override always wins; do not rely on this file alone to
+# exclude them.
+#
+# IMPORTANT: all codes are quoted strings. YAML 1.1's boolean resolver
+# treats bare NO/YES/ON/OFF/TRUE/FALSE as booleans (e.g. Norway's "NO"
+# would silently become Python False) — quoting prevents that.
+
+zone_1:
+  - "AU"  # Australia
+  - "AT"  # Austria
+  - "BE"  # Belgium
+  - "CA"  # Canada
+  - "DK"  # Denmark
+  - "FI"  # Finland
+  - "FR"  # France
+  - "DE"  # Germany
+  - "GR"  # Greece
+  - "IS"  # Iceland
+  - "IE"  # Ireland
+  - "IL"  # Israel
+  - "IT"  # Italy
+  - "JP"  # Japan
+  - "KR"  # Korea
+  - "LI"  # Liechtenstein
+  - "LU"  # Luxembourg
+  - "NL"  # Netherlands
+  - "NZ"  # New Zealand
+  - "NO"  # Norway
+  - "PT"  # Portugal
+  - "SG"  # Singapore
+  - "ES"  # Spain
+  - "SE"  # Sweden
+  - "CH"  # Switzerland
+  - "TW"  # Taiwan
+  - "GB"  # United Kingdom
+  - "US"  # United States
+  - "HU"  # Hungary
+  - "PL"  # Poland
+  - "BG"  # Bulgaria
+  - "RU"  # Russia
+  - "HR"  # Croatia
+  - "SK"  # Slovakia
+  - "CY"  # Cyprus
+  - "SI"  # Slovenia
+  - "CZ"  # Czech Republic
+  - "LV"  # Latvia
+  - "LT"  # Lithuania
+  - "EE"  # Estonia
+  - "MT"  # Malta
+
+zone_2:
+  - "AR"  # Argentina
+  - "BH"  # Bahrain
+  - "BY"  # Belarus
+  - "BO"  # Bolivia
+  - "BR"  # Brazil
+  - "CL"  # Chile
+  - "CN"  # China
+  - "CO"  # Colombia
+  - "CU"  # Cuba
+  - "EC"  # Ecuador
+  - "EG"  # Egypt -- always excluded regardless (see rules/zones.py)
+  - "GF"  # French Guiana
+  - "GY"  # Guyana
+  - "MK"  # Macedonia (North Macedonia)
+  - "MX"  # Mexico
+  - "MD"  # Moldova
+  - "MA"  # Morocco
+  - "OM"  # Oman
+  - "PY"  # Paraguay
+  - "PE"  # Peru
+  - "QA"  # Qatar
+  - "SA"  # Saudi Arabia -- always excluded regardless (see rules/zones.py)
+  - "RS"  # Serbia
+  - "ZA"  # South Africa
+  - "SR"  # Suriname
+  - "UA"  # Ukraine
+  - "AE"  # United Arab Emirates
+  - "UY"  # Uruguay
+  - "VE"  # Venezuela
+  - "HK"  # Hong Kong
+  - "MO"  # Macau
+
+zone_3:
+  # Explicit entries; any country not listed anywhere in this file also
+  # defaults to Zone 3 ("and the rest").
+  - "DZ"  # Algeria
+  - "BD"  # Bangladesh
+  - "CM"  # Cameroon
+  - "IN"  # India
+  - "ID"  # Indonesia
+  - "IR"  # Iran
+  - "IQ"  # Iraq
+  - "JO"  # Jordan
+  - "KW"  # Kuwait
+  - "MY"  # Malaysia
+  - "NG"  # Nigeria
+  - "PK"  # Pakistan
+  - "PH"  # Philippines
+  - "TH"  # Thailand
+  - "TN"  # Tunisia
+  - "TR"  # Turkey
