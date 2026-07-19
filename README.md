@@ -124,6 +124,14 @@ python -m reviewerfinder.cli serve
 
 To run the web UI, with the API above already running: `cd frontend && npm install && npm run dev`, then open the printed `localhost:5173` URL.
 
+**Windows shortcut**: once the backend venv (`backend/.venv`) and frontend (`frontend/node_modules`) are set up once as above, [`run.ps1`](run.ps1) at the repo root starts both the API (`:8000`) and the web UI (`:5173`) together in one command:
+
+```powershell
+powershell -File run.ps1
+```
+
+It prints both process IDs and stops both cleanly on Ctrl+C.
+
 See [`backend/README.md`](backend/README.md) for full setup details, where to get each API key, and the OpenAlex daily-credit note.
 
 ## Tests

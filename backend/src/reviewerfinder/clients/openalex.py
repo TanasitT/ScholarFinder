@@ -47,6 +47,36 @@ class OpenAlexClient:
                 break
         return works
 
+    def search_works_semantic(self, query: str, max_pages: int = 2) -> list[dict]:
+        """Search works by embeddings-based semantic similarity to `query`
+        (OpenAlex's `search.semantic` param) rather than literal term
+        matching. Unlike `search_works`, this endpoint has no cursor
+        pagination (`cursor=*` returns a 400) and caps `per_page` at 50 --
+        it uses plain `page` numbering over a capped result pool instead.
+
+        Robust to messy/novel free text in a way `search_works` isn't: a
+        live search against a real paper's full title returned 0 results
+        via `search_works` (its own rare, not-yet-indexed coined term
+        crushed the relevance ranking when combined with any other term),
+        while the identical text via `search.semantic` returned dozens of
+        genuinely on-topic results.
+        """
+        per_page = 50
+        works: list[dict] = []
+        for page in range(1, max_pages + 1):
+            resp = self.session.get(
+                f"{BASE_URL}/works",
+                params=self._params(**{"search.semantic": query}, per_page=per_page, page=page),
+                timeout=30,
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            results = data.get("results", [])
+            works.extend(results)
+            if len(results) < per_page:
+                break
+        return works
+
     def get_author_recent_works(self, author_id: str, limit: int = 5) -> list[dict]:
         """Fetch an author's most recent works, each carrying `open_access.oa_url`.
 
