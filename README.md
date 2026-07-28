@@ -70,7 +70,7 @@ Backend commands run from `backend/`; frontend commands run from `frontend/` —
 | Country/zone data | [PyYAML](https://pyyaml.org/) | `data/seed/zones.yaml` |
 | Fuzzy name matching | [RapidFuzz](https://github.com/rapidfuzz/RapidFuzz) | chatbot's `lookup_scholar` tool |
 | PDF text extraction | [pypdf](https://pypdf.readthedocs.io/) | scraping emails out of PDF-only open-access papers |
-| Chatbot | [LangChain](https://python.langchain.com/) `create_agent` + [LangGraph](https://langchain-ai.github.io/langgraph/) + [langchain-ollama](https://python.langchain.com/docs/integrations/chat/ollama/) | tool-calling agent, a local Ollama model as the LLM (originally Claude — switched so the whole project needs no paid API key) |
+| Chatbot | [LangChain](https://python.langchain.com/) `create_agent` + [LangGraph](https://langchain-ai.github.io/langgraph/) + [langchain-ollama](https://python.langchain.com/docs/integrations/chat/ollama/) | tool-calling agent over a local Ollama model — no paid API key anywhere in the project |
 | Chat memory | `langgraph-checkpoint-sqlite` (`SqliteSaver`) | conversation history persists across CLI runs, in its own DB file |
 | Keyword-set decomposition | [Ollama](https://ollama.com) (local, plain HTTP via `requests`) | a local model splits the paper into 5 search angles before every search — no API key/billing, same local Ollama server the chatbot uses |
 | HTTP API | [FastAPI](https://fastapi.tiangolo.com/) + [Uvicorn](https://www.uvicorn.org/) | thin layer over the existing pipeline/repositories; `Paper`/`Scholar`/`KeywordSet` reused directly as response models since they're already Pydantic |

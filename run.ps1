@@ -20,8 +20,10 @@ $backend = Start-Process -FilePath $backendPython `
     -PassThru -NoNewWindow
 
 Write-Host "Starting frontend (vite) on http://localhost:5173 ..."
-$frontend = Start-Process -FilePath "npm" `
-    -ArgumentList "run", "dev" `
+# npm resolves to npm.cmd on Windows, a shell script, not a real .exe -- Start-Process
+# needs the real Win32 launcher (cmd.exe) to run it, hence the /c npm wrapping below.
+$frontend = Start-Process -FilePath "cmd.exe" `
+    -ArgumentList "/c", "npm", "run", "dev" `
     -WorkingDirectory (Join-Path $root "frontend") `
     -PassThru -NoNewWindow
 
@@ -36,5 +38,7 @@ try {
 finally {
     Write-Host "Stopping backend and frontend..."
     Stop-Process -Id $backend.Id -ErrorAction SilentlyContinue -Force
-    Stop-Process -Id $frontend.Id -ErrorAction SilentlyContinue -Force
+    # frontend.Id is cmd.exe, which spawned npm, which spawned the actual Vite/Node
+    # process -- killing just cmd.exe would orphan that child, so kill the whole tree.
+    taskkill /PID $frontend.Id /T /F 2>$null | Out-Null
 }

@@ -1,0 +1,488 @@
+<title>ReviewerFinder — Architecture</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  :root {
+    --ink: #1b2027;
+    --ink-soft: #4b5259;
+    --paper: #ece9e1;
+    --surface: #f7f5f0;
+    --surface-raised: #ffffff;
+    --accent: #2a4b7c;
+    --accent-soft: #c9d6e8;
+    --accent-ink: #12233b;
+    --rule: #c7c2b5;
+    --rule-soft: #d9d5c9;
+    --pass: #3f7a4e;
+    --pass-soft: #dfe9e0;
+    --fail: #a34632;
+    --fail-soft: #ecdfda;
+    --warn: #8a6d1e;
+    --warn-soft: #f0e6c8;
+    --shadow: 0 1px 2px rgba(27, 32, 39, 0.06), 0 8px 24px -12px rgba(27, 32, 39, 0.18);
+    --radius: 4px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ink: #ede9e1; --ink-soft: #a9aeb4; --paper: #14171b; --surface: #1b1f24;
+      --surface-raised: #21262c; --accent: #8fb0da; --accent-soft: #26364a; --accent-ink: #dbe6f4;
+      --rule: #383d44; --rule-soft: #2a2e34; --pass: #7cc38a; --pass-soft: #223027;
+      --fail: #e0906f; --fail-soft: #35251f; --warn: #d8b95a; --warn-soft: #362c15;
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px -12px rgba(0, 0, 0, 0.6);
+    }
+  }
+  :root[data-theme="dark"] {
+    --ink: #ede9e1; --ink-soft: #a9aeb4; --paper: #14171b; --surface: #1b1f24;
+    --surface-raised: #21262c; --accent: #8fb0da; --accent-soft: #26364a; --accent-ink: #dbe6f4;
+    --rule: #383d44; --rule-soft: #2a2e34; --pass: #7cc38a; --pass-soft: #223027;
+    --fail: #e0906f; --fail-soft: #35251f; --warn: #d8b95a; --warn-soft: #362c15;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px -12px rgba(0, 0, 0, 0.6);
+  }
+  :root[data-theme="light"] {
+    --ink: #1b2027; --ink-soft: #4b5259; --paper: #ece9e1; --surface: #f7f5f0;
+    --surface-raised: #ffffff; --accent: #2a4b7c; --accent-soft: #c9d6e8; --accent-ink: #12233b;
+    --rule: #c7c2b5; --rule-soft: #d9d5c9; --pass: #3f7a4e; --pass-soft: #dfe9e0;
+    --fail: #a34632; --fail-soft: #ecdfda; --warn: #8a6d1e; --warn-soft: #f0e6c8;
+    --shadow: 0 1px 2px rgba(27, 32, 39, 0.06), 0 8px 24px -12px rgba(27, 32, 39, 0.18);
+  }
+
+  * { box-sizing: border-box; }
+  html { color-scheme: light dark; }
+  body {
+    margin: 0; background: var(--paper); color: var(--ink);
+    font-family: "Segoe UI", "Avenir Next", -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 16px; line-height: 1.55; -webkit-font-smoothing: antialiased;
+  }
+  h1, h2, h3 { font-family: Georgia, "Iowan Old Style", "Palatino Linotype", "Book Antiqua", serif; text-wrap: balance; font-weight: 600; }
+  code, .mono, .mono * { font-family: "Cascadia Code", Consolas, "SF Mono", Menlo, monospace; font-variant-numeric: tabular-nums; }
+  a { color: var(--accent); }
+
+  .topbar {
+    position: sticky; top: 0; z-index: 20; display: flex; align-items: center;
+    justify-content: space-between; gap: 1rem; padding: 0.85rem 1.5rem;
+    background: color-mix(in srgb, var(--paper) 88%, transparent);
+    backdrop-filter: blur(8px); border-bottom: 1px solid var(--rule);
+  }
+  .topbar .brand { display: flex; align-items: baseline; gap: 0.6rem; }
+  .topbar .brand strong { font-family: Georgia, serif; font-size: 1.05rem; letter-spacing: 0.01em; }
+  .topbar .brand span { font-size: 0.78rem; color: var(--ink-soft); }
+  .topbar nav { display: flex; gap: 1.1rem; font-size: 0.82rem; }
+  .topbar nav a { color: var(--ink-soft); text-decoration: none; }
+  .topbar nav a:hover { color: var(--accent); }
+
+  main { max-width: 980px; margin: 0 auto; padding: 2.6rem 1.5rem 5rem; }
+  .thesis h1 { font-size: 1.9rem; margin: 0 0 0.5rem; }
+  .thesis p { max-width: 66ch; color: var(--ink-soft); margin: 0 0 1.1rem; }
+  .stat-line {
+    display: flex; flex-wrap: wrap; gap: 0.4rem 1.4rem; padding: 0.7rem 0;
+    border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule);
+    font-size: 0.82rem; color: var(--ink-soft);
+  }
+  .stat-line b { color: var(--ink); font-family: Georgia, serif; font-weight: 600; }
+
+  section { margin-top: 3rem; scroll-margin-top: 4.5rem; }
+  .eyebrow {
+    font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--accent); font-weight: 600; margin: 0 0 0.3rem;
+  }
+  h2.section-title { font-size: 1.3rem; margin: 0 0 0.35rem; }
+  .section-lede { color: var(--ink-soft); max-width: 66ch; margin: 0 0 1.6rem; font-size: 0.95rem; }
+
+  /* ================= flowchart primitives ================= */
+  .fc-scroll { overflow-x: auto; padding: 0.5rem 0.5rem 1.5rem; }
+  .fc {
+    display: flex; flex-direction: column; align-items: center;
+    min-width: 460px; width: fit-content; margin: 0 auto;
+  }
+
+  .fc-arrow { width: 2px; height: 26px; background: var(--rule); position: relative; }
+  .fc-arrow::after {
+    content: ""; position: absolute; left: 50%; bottom: -1px; transform: translateX(-50%);
+    border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 7px solid var(--rule);
+  }
+  .fc-arrow.short { height: 14px; }
+  .fc-arrow[data-label]::before {
+    content: attr(data-label); position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
+    font-size: 0.68rem; color: var(--ink-soft); white-space: nowrap; letter-spacing: 0.03em;
+  }
+
+  .fc-node {
+    background: var(--surface-raised); border: 1px solid var(--rule); border-radius: var(--radius);
+    box-shadow: var(--shadow); padding: 0.7rem 1.05rem; min-width: 260px; max-width: 400px;
+    text-align: center;
+  }
+  .fc-node b { display: block; font-family: Georgia, serif; font-size: 0.95rem; font-weight: 600; }
+  .fc-node small { display: block; color: var(--ink-soft); font-size: 0.78rem; margin-top: 0.2rem; }
+  .fc-node .file {
+    display: inline-block; margin-top: 0.45rem; background: var(--surface); border: 1px solid var(--rule);
+    border-radius: var(--radius); padding: 0.1rem 0.45rem; font-size: 0.7rem; color: var(--accent-ink);
+  }
+  .fc-node.io { border-radius: 999px; background: var(--accent-soft); border-color: var(--accent-soft); }
+  .fc-node.io b { color: var(--accent-ink); }
+  .fc-node.external { border-style: dashed; }
+  .fc-node.end { background: var(--surface); box-shadow: none; }
+  .fc-node.end.rejected { border-color: var(--fail); }
+  .fc-node.end.rejected b { color: var(--fail); }
+  .fc-node.end.kept b { color: var(--pass); }
+  .fc-node.gate { border-color: var(--warn); }
+  .fc-node.gate b { color: var(--warn); }
+
+  .fc-decision-wrap { position: relative; }
+  .fc-decision {
+    width: 220px; height: 118px; background: var(--surface-raised); border: 1px solid var(--rule);
+    clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%); box-shadow: var(--shadow);
+    display: flex; align-items: center; justify-content: center; text-align: center;
+    padding: 0 2.4rem; font-size: 0.82rem; font-weight: 600; color: var(--ink);
+  }
+  .fc-decision small { display: block; font-weight: 400; color: var(--ink-soft); font-size: 0.72rem; margin-top: 0.2rem; }
+
+  .side-exit {
+    position: absolute; left: 100%; top: 50%; transform: translateY(-50%);
+    display: flex; align-items: center; gap: 0.55rem; margin-left: 0.3rem; white-space: nowrap;
+  }
+  .side-conn { display: flex; flex-direction: column; align-items: center; gap: 0.15rem; }
+  .side-tag { font-size: 0.64rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--fail); }
+  .side-tag.ok { color: var(--pass); }
+  .side-line { width: 36px; height: 2px; background: var(--fail); position: relative; }
+  .side-line.ok { background: var(--pass); }
+  .side-line::after {
+    content: ""; position: absolute; right: -1px; top: 50%; transform: translateY(-50%);
+    border-top: 5px solid transparent; border-bottom: 5px solid transparent; border-left: 6px solid var(--fail);
+  }
+  .side-line.ok::after { border-left-color: var(--pass); }
+  .pass-tag {
+    position: absolute; left: 100%; top: 100%; margin-top: -0.55rem; margin-left: 0.35rem;
+    font-size: 0.64rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--pass);
+  }
+  .fc-decision-wrap.centered-continue::after {
+    content: "continue ↓"; display: none;
+  }
+
+  .fc-loop {
+    position: relative; border: 1.5px dashed var(--rule); border-radius: 10px;
+    padding: 2.2rem 2rem 1.6rem; margin: 0.4rem 0;
+  }
+  .fc-loop .loop-tab {
+    position: absolute; top: -0.75rem; left: 1.3rem; background: var(--paper);
+    padding: 0.1rem 0.6rem; font-size: 0.74rem; font-weight: 600; color: var(--accent-ink);
+    border: 1px solid var(--rule); border-radius: var(--radius);
+  }
+
+  .fc-row { display: flex; align-items: center; gap: 1.4rem; }
+  .fc-row .fc-node { min-width: 200px; }
+  .fc-col-arrows { display: flex; gap: 3.4rem; }
+  .fc-col-arrows .fc-arrow { }
+
+  /* ================= reused card/table styles ================= */
+  .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; margin-bottom: 1rem; }
+  .card { background: var(--surface); border: 1px solid var(--rule); border-radius: var(--radius); padding: 1.1rem 1.2rem; }
+  .card h3 { font-size: 1rem; margin: 0 0 0.7rem; }
+  .card h3 small { display: block; font-family: "Segoe UI", sans-serif; font-weight: 400; font-size: 0.76rem; color: var(--ink-soft); margin-top: 0.15rem; }
+
+  .kv-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+  .kv-table th { text-align: left; color: var(--ink-soft); font-weight: 600; font-size: 0.72rem; letter-spacing: 0.04em; text-transform: uppercase; padding-bottom: 0.4rem; }
+  .kv-table td { padding: 0.42rem 0; border-top: 1px solid var(--rule-soft); vertical-align: top; }
+  .kv-table td.k { white-space: nowrap; padding-right: 0.9rem; color: var(--accent-ink); }
+  .table-scroll { overflow-x: auto; }
+
+  .schema-card .cols { margin: 0; padding: 0; list-style: none; font-size: 0.82rem; }
+  .schema-card .cols li { padding: 0.2rem 0; border-top: 1px solid var(--rule-soft); display: flex; justify-content: space-between; gap: 0.6rem; }
+  .schema-card .cols li:first-child { border-top: none; }
+  .schema-card .cols li .type { color: var(--ink-soft); }
+  .schema-card .fk { margin-top: 0.6rem; font-size: 0.76rem; color: var(--accent-ink); }
+
+  .tree { font-size: 0.83rem; line-height: 1.7; white-space: pre; }
+  .tree .dim { color: var(--ink-soft); }
+
+  .rule-list { list-style: none; margin: 0; padding: 0; font-size: 0.9rem; }
+  .rule-list li { display: flex; gap: 0.7rem; padding: 0.55rem 0; border-top: 1px solid var(--rule-soft); }
+  .rule-list li:first-child { border-top: none; }
+  .rule-list .mark { flex: none; width: 1.1rem; color: var(--pass); font-weight: 700; }
+  .rule-list li.override .mark { color: var(--fail); }
+  .rule-list .txt b { display: block; }
+  .rule-list .txt small { color: var(--ink-soft); }
+
+  .legend { display: flex; flex-wrap: wrap; gap: 0.9rem; font-size: 0.76rem; color: var(--ink-soft); margin: 0 0 1.4rem; }
+  .legend span { display: inline-flex; align-items: center; gap: 0.4rem; }
+  .legend i { width: 14px; height: 14px; border-radius: 3px; display: inline-block; background: var(--surface-raised); border: 1px solid var(--rule); }
+  .legend i.io { border-radius: 999px; background: var(--accent-soft); border-color: var(--accent-soft); }
+  .legend i.decision { clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%); background: var(--surface-raised); }
+  .legend i.external { border-style: dashed; }
+  .legend i.rejected { border-color: var(--fail); }
+
+  footer { max-width: 980px; margin: 0 auto; padding: 1.6rem 1.5rem 3rem; color: var(--ink-soft); font-size: 0.8rem; border-top: 1px solid var(--rule); }
+</style>
+
+<div class="topbar">
+  <div class="brand"><strong>ReviewerFinder</strong><span>architecture</span></div>
+  <nav>
+    <a href="#system">System flow</a>
+    <a href="#pipeline">Search pipeline</a>
+    <a href="#chatbot">Chatbot flow</a>
+    <a href="#data">Data</a>
+    <a href="#stack">Stack</a>
+  </nav>
+</div>
+
+<main>
+  <div class="thesis">
+    <h1>How a request moves through the system</h1>
+    <p>Two entry points — the CLI and the web UI — feed the same pipeline, rule engine, and SQLite store. Eligibility is decided by pure Python, never an LLM; a local Ollama model only ever decides <em>what gets searched for</em>. The diagrams below trace the actual control flow, including every decision point and rejection path.</p>
+  </div>
+
+  <div class="stat-line mono">
+    <span><b>0</b> paid API keys required</span>
+    <span><b>2</b> primary external data sources</span>
+    <span><b>5</b> keyword-set search angles per paper</span>
+    <span><b>5</b> hard eligibility rules</span>
+    <span><b>5 / 5</b> build phases shipped</span>
+  </div>
+
+  <div class="legend">
+    <span><i class="io"></i> input / output</span>
+    <span><i></i> process step</span>
+    <span><i class="external"></i> external service call</span>
+    <span><i class="decision"></i> decision</span>
+    <span><i class="rejected"></i> terminal (rejected)</span>
+  </div>
+
+  <!-- ================= SYSTEM FLOW ================= -->
+  <section id="system">
+    <div class="eyebrow">Top level</div>
+    <h2 class="section-title">System flowchart</h2>
+    <p class="section-lede">Either entry point runs the identical pipeline underneath — the API is a thin, test-overridable wrapper with no business logic of its own.</p>
+
+    <div class="fc-scroll">
+      <div class="fc">
+        <div class="fc-row">
+          <div class="fc-node io"><b>CLI: reviewerfinder search</b></div>
+          <div class="fc-node io"><b>Browser: new-search form (confirm step)</b></div>
+        </div>
+        <div class="fc-col-arrows">
+          <div class="fc-arrow"></div>
+          <div class="fc-arrow"></div>
+        </div>
+        <div class="fc-row">
+          <div class="fc-node"><b>Typer command</b><small>cli.py :: search()</small></div>
+          <div class="fc-node"><b>POST /api/papers/search</b><small>starts a background-thread job, returns job id</small></div>
+        </div>
+        <div class="fc-arrow"></div>
+
+        <div class="fc-decision-wrap">
+          <div class="fc-decision">Ollama reachable <b>and</b> OPENALEX_API_KEY set?<small>api/deps.py :: check_ollama_reachable()</small></div>
+          <div class="side-exit">
+            <div class="side-conn"><span class="side-tag">no</span><span class="side-line"></span></div>
+            <div class="fc-node end rejected"><b>503 / fail fast</b><small>before any job or OpenAlex budget is spent</small></div>
+          </div>
+          <span class="pass-tag">yes</span>
+        </div>
+        <div class="fc-arrow"></div>
+
+        <div class="fc-node"><b>pipeline.run_search()</b><small>creates the parent Paper row</small></div>
+        <div class="fc-arrow"></div>
+
+        <div class="fc-node"><b>Per-keyword-set search pipeline</b><small>see full detail below — runs 5×, independently</small></div>
+        <div class="fc-arrow"></div>
+
+        <div class="fc-node"><b>SQLite: reviewerfinder.db</b><small>every candidate persisted, pass or fail</small></div>
+        <div class="fc-arrow"></div>
+
+        <div class="fc-node io"><b>Response: up to 5 ranked scholars × 5 keyword sets</b><small>CLI prints directly · UI polls the job until done</small></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= SEARCH PIPELINE ================= -->
+  <section id="pipeline">
+    <div class="eyebrow">Per paper</div>
+    <h2 class="section-title">Search pipeline flowchart</h2>
+    <p class="section-lede">One keyword-set decomposition step, then the discover → enrich → filter → email-hunt → filter → rank → persist sequence runs once per keyword set, fully independently.</p>
+
+    <div class="fc-scroll">
+      <div class="fc">
+        <div class="fc-node io"><b>Title, abstract, keywords</b></div>
+        <div class="fc-arrow"></div>
+
+        <div class="fc-node external"><b>Ollama: generate_keyword_sets()</b><small>decomposes into 5 distinct 3-keyword angles</small><span class="file">discovery/keyword_summarizer.py</span></div>
+
+        <div class="fc-decision-wrap" style="margin-top:0.4rem;">
+          <div class="fc-arrow short" style="margin-left:auto;margin-right:auto;"></div>
+        </div>
+        <div class="fc-decision-wrap">
+          <div class="fc-decision">Valid 5-set, 3-keyword JSON?</div>
+          <div class="side-exit">
+            <div class="side-conn"><span class="side-tag">no</span><span class="side-line"></span></div>
+            <div class="fc-node end rejected"><b>RuntimeError — abort</b><small>nothing to search for without valid sets; fails loudly</small></div>
+          </div>
+          <span class="pass-tag">yes</span>
+        </div>
+        <div class="fc-arrow" data-label="× 5 keyword sets"></div>
+
+        <div class="fc-loop">
+          <span class="loop-tab">repeated independently per keyword set (× 5)</span>
+          <div class="fc">
+            <div class="fc-node external"><b>OpenAlex search.semantic(3 keywords)</b><small>embeddings-based — handles novel/rare terms literal search misses</small><span class="file">clients/openalex.py :: search_works_semantic()</span></div>
+            <div class="fc-arrow"></div>
+
+            <div class="fc-node"><b>Extract candidate author IDs</b><span class="file">discovery/candidate_finder.py</span></div>
+            <div class="fc-arrow"></div>
+
+            <div class="fc-node external"><b>Enrich each candidate</b><small>OpenAlex author profile + Semantic Scholar cross-check</small><span class="file">discovery/enrichment.py</span></div>
+            <div class="fc-arrow"></div>
+
+            <div class="fc-decision-wrap">
+              <div class="fc-decision">Passes core rules?<small>zone · institution · output · h-index</small></div>
+              <div class="side-exit">
+                <div class="side-conn"><span class="side-tag">fail</span><span class="side-line"></span></div>
+                <div class="fc-node end rejected"><b>Record match — dropped</b><small>fail_reasons_json saved, no scraping spent</small></div>
+              </div>
+              <span class="pass-tag">pass</span>
+            </div>
+            <div class="fc-arrow"></div>
+
+            <div class="fc-node external"><b>Email hunt</b><small>open-access papers (HTML/PDF) → Semantic Scholar homepage fallback</small><span class="file">discovery/email_hunter.py</span></div>
+            <div class="fc-arrow"></div>
+
+            <div class="fc-decision-wrap">
+              <div class="fc-decision">Same rules pass, <b>with</b> email required?</div>
+              <div class="side-exit">
+                <div class="side-conn"><span class="side-tag">fail</span><span class="side-line"></span></div>
+                <div class="fc-node end rejected"><b>Record match — dropped</b><small>usually: no email discoverable</small></div>
+              </div>
+              <span class="pass-tag">pass</span>
+            </div>
+            <div class="fc-arrow"></div>
+
+            <div class="fc-node"><b>Rank by topical relevance</b><small>ordering only — never filters</small><span class="file">rules/ranking.py</span></div>
+            <div class="fc-arrow"></div>
+
+            <div class="fc-node end kept"><b>Persist &amp; keep</b><small>keyed by (paper_id, keyword_set_id, scholar_id)</small></div>
+          </div>
+        </div>
+
+        <div class="fc-arrow"></div>
+        <div class="fc-node io"><b>Top 5 ranked scholars, per keyword set</b></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= CHATBOT FLOW ================= -->
+  <section id="chatbot">
+    <div class="eyebrow">CLI only, for now</div>
+    <h2 class="section-title">Chatbot flowchart</h2>
+    <p class="section-lede">The agent never decides eligibility itself — for any fitness question it calls <code>check_scholar_fit</code>, which runs the exact same rule engine as the pipeline above, and is instructed to relay the verdict verbatim.</p>
+
+    <div class="fc-scroll">
+      <div class="fc">
+        <div class="fc-node io"><b>Your message</b></div>
+        <div class="fc-arrow"></div>
+        <div class="fc-node external"><b>LangChain agent (local Ollama model)</b><small>create_agent, chatbot/agent.py</small></div>
+        <div class="fc-arrow"></div>
+        <div class="fc-node"><b>Picks a tool</b><small>local models are less reliable at consistent tool-calling than Claude was</small></div>
+        <div class="fc-arrow"></div>
+        <div class="fc-row" style="flex-wrap:wrap; justify-content:center; gap:0.8rem; max-width:820px;">
+          <div class="fc-node" style="min-width:190px;"><b>lookup_scholar</b><small>fuzzy name or exact ID</small></div>
+          <div class="fc-node" style="min-width:190px;"><b>lookup_paper</b><small>by ID or exact title</small></div>
+          <div class="fc-node" style="min-width:190px;"><b>check_scholar_fit</b><small>calls the real rule engine</small></div>
+          <div class="fc-node" style="min-width:190px;"><b>list_top_candidates</b><small>already-ranked passers</small></div>
+          <div class="fc-node gate" style="min-width:190px;"><b>search_new_candidates</b><small>spends OpenAlex budget — soft-gated: agent must ask you to confirm first</small></div>
+        </div>
+        <div class="fc-arrow"></div>
+        <div class="fc-node io"><b>Answer, relayed to you</b><small>eligibility verdicts reported verbatim, never re-derived</small></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= DATA MODEL ================= -->
+  <section id="data">
+    <div class="eyebrow">Where it's stored</div>
+    <h2 class="section-title">Data model</h2>
+    <p class="section-lede">SQLite (<code>data/reviewerfinder.db</code>) — filtering/staleness/join queries are inherently relational, and a single file needs no extra service to run.</p>
+
+    <div class="card-grid" style="margin-bottom:2.4rem;">
+      <div class="card schema-card">
+        <h3>papers<small>one row per submitted search</small></h3>
+        <ul class="cols mono">
+          <li><span>id</span><span class="type">pk</span></li>
+          <li><span>title, abstract</span><span class="type">text</span></li>
+          <li><span>keywords_json</span><span class="type">text</span></li>
+          <li><span>run_date</span><span class="type">text</span></li>
+        </ul>
+      </div>
+      <div class="card schema-card">
+        <h3>keyword_sets<small>5 rows per paper — one per search angle</small></h3>
+        <ul class="cols mono">
+          <li><span>id</span><span class="type">pk</span></li>
+          <li><span>paper_id</span><span class="type">fk</span></li>
+          <li><span>keywords_json</span><span class="type">text (3 keywords)</span></li>
+        </ul>
+        <div class="fk">→ papers.id</div>
+      </div>
+      <div class="card schema-card">
+        <h3>scholars<small>one row per candidate, keyed by OpenAlex ID</small></h3>
+        <ul class="cols mono">
+          <li><span>id</span><span class="type">pk (OpenAlex id)</span></li>
+          <li><span>display_name, orcid</span><span class="type">text</span></li>
+          <li><span>h_index, works_count_last_5y</span><span class="type">int</span></li>
+          <li><span>current_institution_*, zone</span><span class="type">text</span></li>
+          <li><span>email, email_verification_status</span><span class="type">text</span></li>
+          <li><span>last_checked_at</span><span class="type">text</span></li>
+        </ul>
+      </div>
+      <div class="card schema-card">
+        <h3>paper_scholar_matches<small>every evaluated candidate, pass or fail</small></h3>
+        <ul class="cols mono">
+          <li><span>paper_id, keyword_set_id, scholar_id</span><span class="type">fk (unique)</span></li>
+          <li><span>relevance_score</span><span class="type">real</span></li>
+          <li><span>passed_hard_rules</span><span class="type">bool</span></li>
+          <li><span>fail_reasons_json</span><span class="type">text</span></li>
+          <li><span>rank_position</span><span class="type">int</span></li>
+        </ul>
+        <div class="fk">→ papers.id, keyword_sets.id, scholars.id</div>
+      </div>
+    </div>
+
+    <div class="eyebrow">What "qualified" means</div>
+    <h2 class="section-title">Eligibility rules</h2>
+    <p class="section-lede">Enforced entirely in Python (<code>rules/filters.py</code>, <code>rules/zones.py</code>) — the two decision diamonds in the pipeline above check exactly these.</p>
+    <ul class="rule-list" style="margin-bottom:1rem;">
+      <li><span class="mark">✓</span><span class="txt"><b>8+ papers in the last 5 years</b><small>recency, not just lifetime output</small></span></li>
+      <li><span class="mark">✓</span><span class="txt"><b>Zone 1 or Zone 2 country</b><small>Zone 3 and any unlisted country default to excluded</small></span></li>
+      <li class="override"><span class="mark">✗</span><span class="txt"><b>Egypt &amp; Saudi Arabia — always excluded</b><small>hardcoded override; wins even if listed under an allowed zone</small></span></li>
+      <li><span class="mark">✓</span><span class="txt"><b>Academic institution only</b><small>not currently employed by a company</small></span></li>
+      <li><span class="mark">✓</span><span class="txt"><b>H-index ≥ 5 (Zone 1) or ≥ 10 (Zone 2)</b><small>threshold scales with country trust zone</small></span></li>
+      <li><span class="mark">✓</span><span class="txt"><b>A discovered email address</b><small>scraped only — never constructed or guessed</small></span></li>
+    </ul>
+  </section>
+
+  <!-- ================= STACK ================= -->
+  <section id="stack">
+    <div class="eyebrow">What it's built with</div>
+    <h2 class="section-title">Tech stack</h2>
+    <p class="section-lede">No paid API key anywhere — Ollama replaced Claude for both keyword decomposition and the chatbot.</p>
+    <div class="card table-scroll">
+      <table class="kv-table mono">
+        <thead><tr><th>Role</th><th>Choice</th><th>Why</th></tr></thead>
+        <tbody>
+          <tr><td class="k">Language</td><td>Python 3.11+</td><td>—</td></tr>
+          <tr><td class="k">CLI</td><td>Typer</td><td>thin, typed commands: search / refresh / chat / serve</td></tr>
+          <tr><td class="k">Data models</td><td>Pydantic v2</td><td>validation + reused directly as FastAPI response models</td></tr>
+          <tr><td class="k">Storage</td><td>SQLite (stdlib)</td><td>filtering / staleness / joins are relational; zero services to run</td></tr>
+          <tr><td class="k">HTTP</td><td>requests</td><td>plain clients for OpenAlex + Semantic Scholar + Ollama</td></tr>
+          <tr><td class="k">Fuzzy match</td><td>RapidFuzz</td><td>chatbot's lookup_scholar by name</td></tr>
+          <tr><td class="k">PDF text</td><td>pypdf</td><td>emails from PDF-only open-access papers</td></tr>
+          <tr><td class="k">Keyword decomposition</td><td>local Ollama (plain HTTP)</td><td>splits a paper into 5 search angles before every search — no API key/billing</td></tr>
+          <tr><td class="k">Chatbot</td><td>LangChain create_agent + LangGraph + langchain-ollama</td><td>tool-calling agent over a local Ollama model</td></tr>
+          <tr><td class="k">Chat memory</td><td>langgraph-checkpoint-sqlite (SqliteSaver)</td><td>conversation persists across CLI runs, separate DB file</td></tr>
+          <tr><td class="k">HTTP API</td><td>FastAPI + Uvicorn</td><td>thin layer over the existing pipeline/repositories</td></tr>
+          <tr><td class="k">Frontend</td><td>React + Vite + react-router-dom</td><td>SPA for search + browse; Vite dev proxy avoids needing CORS</td></tr>
+          <tr><td class="k">Tests</td><td>pytest + pytest-mock</td><td>every HTTP call mocked against fixtures — no live network in the suite</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<footer>
+  Generated architecture reference — see <code>README.md</code> and <code>CLAUDE.md</code> in the repository root for full detail, and <code>decision.md</code> for the chronological log of why things ended up this way.
+</footer>
