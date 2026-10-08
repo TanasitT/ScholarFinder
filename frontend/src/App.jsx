@@ -3,6 +3,7 @@ import SearchPage from "./pages/SearchPage.jsx";
 import PapersPage from "./pages/PapersPage.jsx";
 import PaperDetailPage from "./pages/PaperDetailPage.jsx";
 import ScholarDetailPage from "./pages/ScholarDetailPage.jsx";
+import ChatPage from "./pages/ChatPage.jsx";
 
 export default function App() {
   return (
@@ -19,6 +20,9 @@ export default function App() {
           <NavLink to="/papers" className={({ isActive }) => (isActive ? "active" : "")}>
             Past papers
           </NavLink>
+          <NavLink to="/chat" className={({ isActive }) => (isActive ? "active" : "")}>
+            Chat
+          </NavLink>
         </nav>
       </div>
 
@@ -27,6 +31,7 @@ export default function App() {
         <Route path="/papers" element={<PapersPage />} />
         <Route path="/papers/:paperId" element={<PaperDetailPage />} />
         <Route path="/scholars/:scholarId" element={<ScholarDetailPage />} />
+        <Route path="/chat" element={<ChatPage />} />
       </Routes>
     </>
   );

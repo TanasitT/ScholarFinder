@@ -1,16 +1,27 @@
 from __future__ import annotations
 
 import logging
-from contextlib import asynccontextmanager
+from contextlib import ExitStack, asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
 from config.settings import DB_PATH, settings
-from reviewerfinder.api.routes import papers, scholars
+from reviewerfinder.api.routes import chat, papers, scholars
 from reviewerfinder.clients.openalex import OpenAlexClient
 from reviewerfinder.clients.semantic_scholar import SemanticScholarClient
 from reviewerfinder.db.connection import init_db
+
+# The chatbot needs the optional `chatbot` extra (LangChain/LangGraph). The
+# README's keyless demo installs only `.[api]`, so a missing extra must not
+# stop the API from starting -- search and browsing still work, and
+# /api/chat answers 503 instead.
+try:
+    from reviewerfinder.chatbot.agent import build_chatbot
+    from reviewerfinder.chatbot.session import checkpointer_context
+except ImportError:
+    build_chatbot = None
+    checkpointer_context = None
 
 logger = logging.getLogger(__name__)
 
@@ -29,12 +40,40 @@ async def lifespan(app: FastAPI):
     app.state.semantic_scholar_client = SemanticScholarClient(
         api_key=settings.semantic_scholar_api_key
     )
-    yield
+
+    # The chatbot agent/checkpointer are built once for the app's lifetime
+    # (not per-request) -- see api/deps.py::get_chatbot_agent. Same
+    # None-if-unconfigured pattern as openalex_client above: chat's tools
+    # need an OpenAlexClient too (e.g. check_scholar_fit's staleness
+    # refresh), so chat is unavailable rather than app startup failing when
+    # no OPENALEX_API_KEY is configured. The reason is kept for the 503.
+    app.state.chat_agent = None
+    app.state.chat_unavailable_reason = None
+    with ExitStack() as stack:
+        if build_chatbot is None:
+            app.state.chat_unavailable_reason = (
+                'Chat is unavailable -- the chatbot packages are not installed (pip install -e ".[chatbot]").'
+            )
+        elif app.state.openalex_client is None:
+            app.state.chat_unavailable_reason = (
+                "Chat is unavailable -- OPENALEX_API_KEY is not configured on the server."
+            )
+        else:
+            checkpointer = stack.enter_context(checkpointer_context())
+            app.state.chat_checkpointer = checkpointer
+            app.state.chat_agent = build_chatbot(
+                db_path=DB_PATH,
+                openalex_client=app.state.openalex_client,
+                checkpointer=checkpointer,
+                staleness_months=settings.scholar_staleness_months,
+            )
+        yield
 
 
 app = FastAPI(title="ScholarFinder API", lifespan=lifespan)
 app.include_router(papers.router)
 app.include_router(scholars.router)
+app.include_router(chat.router)
 
 
 @app.exception_handler(Exception)

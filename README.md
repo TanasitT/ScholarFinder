@@ -1,6 +1,6 @@
 # ScholarFinder
 
-ScholarFinder finds qualified peer reviewers for an academic paper. Give it a paper's title, abstract, and keywords; it first asks a local Ollama model to decompose the paper into 5 distinct 3-keyword search angles (or you write up to 5 angles yourself), then searches each independently and returns up to 10 candidate scholars per angle — name, institution, h-index, research topics, and a best-effort discovered email — who meet a strict set of eligibility rules. Results are stored locally so the same scholars don't need to be re-researched for the next paper. A CLI chatbot (also Ollama-powered) can answer follow-up questions like "is this scholar fit to review that paper?" against the stored data, and a web UI covers searching and browsing. No paid API key is needed anywhere in the project.
+ScholarFinder finds qualified peer reviewers for an academic paper. Give it a paper's title, abstract, and keywords; it first asks a local Ollama model to decompose the paper into 5 distinct 3-keyword search angles (or you write up to 5 angles yourself), then searches each independently and returns up to 10 candidate scholars per angle — name, institution, h-index, research topics, and a best-effort discovered email — who meet a strict set of eligibility rules. Results are stored locally so the same scholars don't need to be re-researched for the next paper. A chatbot (also Ollama-powered, in the terminal or the web UI) can answer follow-up questions like "is this scholar fit to review that paper?" against the stored data, and the web UI also covers searching and browsing. No paid API key is needed anywhere in the project.
 
 > **Naming:** the project is called **ScholarFinder**. The Python package, CLI module and SQLite file still use the earlier working name `reviewerfinder` (e.g. `python -m reviewerfinder.cli`, `data/reviewerfinder.db`); they were left unchanged so imports and stored data keep working.
 
@@ -19,7 +19,7 @@ python -m reviewerfinder.cli serve              # API on :8000
 
 In a second terminal: `cd frontend && npm install && npm run dev`, then open `http://localhost:5173` and go to **Past papers**.
 
-The seeded names and `@example.org` addresses are made up; no real person's data is included.
+The seeded names and `@example.org` addresses are made up; no real person's data is included. The **Chat** page needs the `chatbot` extra, an OpenAlex key and Ollama, so in this setup it just reports that chat is unavailable.
 
 ## Requirements
 
@@ -76,7 +76,7 @@ ScholarFinder/
 │   ├── data/seed/zones.yaml   Country → trust-zone mapping (editable data)
 │   ├── scripts/seed_demo.py   Loads a fictional demo dataset (no API keys needed)
 │   └── tests/                 Unit + integration tests (see below)
-├── frontend/          React + Vite SPA: search form, past papers, paper/scholar detail views
+├── frontend/          React + Vite SPA: search form, past papers, paper/scholar detail views, chat
 └── .claude/           Claude Code project agents/skills for developing this repo
 ```
 
@@ -96,10 +96,10 @@ Backend commands run from `backend/`; frontend commands run from `frontend/` —
 | Fuzzy name matching | [RapidFuzz](https://github.com/rapidfuzz/RapidFuzz) | chatbot's `lookup_scholar` tool |
 | PDF text extraction | [pypdf](https://pypdf.readthedocs.io/) | scraping emails out of PDF-only open-access papers |
 | Chatbot | [LangChain](https://python.langchain.com/) `create_agent` + [LangGraph](https://langchain-ai.github.io/langgraph/) + [langchain-ollama](https://python.langchain.com/docs/integrations/chat/ollama/) | tool-calling agent over a local Ollama model — no paid API key anywhere in the project |
-| Chat memory | `langgraph-checkpoint-sqlite` (`SqliteSaver`) | conversation history persists across CLI runs, in its own DB file |
+| Chat memory | `langgraph-checkpoint-sqlite` (`SqliteSaver`) | conversation history persists across CLI runs and browser sessions, in its own DB file |
 | Keyword-set decomposition | [Ollama](https://ollama.com) (local, plain HTTP via `requests`) | a local model splits the paper into 5 search angles before every search — no API key/billing, same local Ollama server the chatbot uses |
 | HTTP API | [FastAPI](https://fastapi.tiangolo.com/) + [Uvicorn](https://www.uvicorn.org/) | thin layer over the existing pipeline/repositories; `Paper`/`Scholar`/`KeywordSet` reused directly as response models since they're already Pydantic |
-| Frontend | [React](https://react.dev/) + [Vite](https://vitejs.dev/) + [react-router-dom](https://reactrouter.com/) | SPA with routing/component state for search + browse; Vite's dev proxy avoids needing CORS |
+| Frontend | [React](https://react.dev/) + [Vite](https://vitejs.dev/) + [react-router-dom](https://reactrouter.com/) | SPA with routing/component state for search, browse and chat; Vite's dev proxy avoids needing CORS |
 | Tests | pytest + pytest-mock | all HTTP calls mocked against fixtures; no live network in the test suite |
 
 External data sources: **[OpenAlex](https://openalex.org)** (primary — topical search, author metrics, open-access links; free but requires an API key and has daily usage credits) and **[Semantic Scholar](https://www.semanticscholar.org/product/api)** (secondary cross-check + homepage lead for email hunting). Google Scholar and Scopus are *not* queried automatically (Scholar blocks scraping, Scopus needs paid institutional access) — instead the tool generates a search-URL for each so you can check manually.
@@ -119,7 +119,7 @@ External data sources: **[OpenAlex](https://openalex.org)** (primary — topical
 
 Steps 1–7 run once per keyword set — a search evaluates candidates from 5 independent angles (1–5 with manual sets), not one flat query.
 
-The chatbot (`chatbot/`) is a LangChain agent with five tools over that same stored data and rule engine (`lookup_scholar`, `lookup_paper`, `check_scholar_fit`, `list_top_candidates`, `search_new_candidates`) — it answers questions and explains results, but for any eligibility verdict it calls `check_scholar_fit` and reports the rule engine's answer verbatim rather than deciding itself.
+The chatbot (`chatbot/`) is a LangChain agent with five tools over that same stored data and rule engine (`lookup_scholar`, `lookup_paper`, `check_scholar_fit`, `list_top_candidates`, `search_new_candidates`) — it answers questions and explains results, but for any eligibility verdict it calls `check_scholar_fit` and reports the rule engine's answer verbatim rather than deciding itself. Use it from the terminal (`chat`) or from the web UI's **Chat** page, which sends each message to `POST /api/chat`; every browser conversation is its own thread.
 
 The web frontend talks to a FastAPI layer (`api/`) that's a thin wrapper over the *same* `pipeline.run_search()` and repositories — running a search from the browser goes through the identical pipeline above, just triggered over HTTP instead of the CLI (asynchronously, since 5 keyword sets' worth of work can take minutes — the UI polls a job and shows real per-set progress). Browsing already-stored papers/scholars works without anything configured; only triggering a new search needs `OPENALEX_API_KEY` and (unless you enter the keyword sets manually) a reachable local Ollama, and the UI asks for explicit confirmation first since that spends OpenAlex budget.
 
@@ -183,6 +183,7 @@ Run with `pytest` from `backend/`. Unit tests (`tests/unit/`) are pure and offli
 - **`test_enrichment.py`** — the `carry_over_email` helper, which prevents a scholar's core-data refresh (new h-index/institution from OpenAlex) from silently wiping a previously-discovered email.
 - **`test_chatbot_tools.py`** — each chatbot tool in isolation (via `.invoke()`, no live LLM call): scholar/paper lookup by exact ID and fuzzy name, `check_scholar_fit` matching what calling the rule engine directly would return (including that it refreshes stale scholars, via a mocked OpenAlex client, without losing their email), ranked candidate listing, and that `search_new_candidates` calls the pipeline with the stored paper's own fields.
 - **`test_keyword_summarizer.py`** — the Ollama-based keyword-set generator, with the HTTP call mocked: parses a valid 5-set response, strips a markdown code fence / surrounding prose the local model adds despite being told not to, raises a clear error when Ollama is unreachable, and raises on invalid JSON / wrong set count / wrong keyword count / missing fields rather than silently proceeding with something malformed.
+- **`test_api_chat.py`** — the chat endpoint with a fake agent: the first message mints a session id, later messages reuse the same thread, and chat answers 503 when unavailable. Also checks, in a fresh interpreter with LangChain blocked, that the API still starts without the `chatbot` extra.
 - **`test_api_papers.py`** / **`test_api_scholars.py`** — the FastAPI routes via `TestClient`, with every repository/client dependency overridden to a temp DB and mocked HTTP (nothing ever touches the real database or network): listing papers with their passing counts, grouped paper/scholar detail 404s, running a real search through the async job HTTP layer end-to-end, that search returns 503 rather than crashing when OpenAlex isn't configured or Ollama isn't reachable, that a search with manual keyword sets never checks Ollama (malformed sets get a 422), and that country lists are validated (422 for a non-2-letter code) and applied.
 
 **`tests/integration/`**

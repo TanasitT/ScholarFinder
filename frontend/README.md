@@ -8,8 +8,9 @@ A React + Vite single-page app for searching and browsing ScholarFinder's stored
 - **Past papers** — every paper searched so far, with its passing-scholar count.
 - **Paper detail** — one paper's ranked matches, grouped by keyword set. Here and on the search results, clickable country pills filter the cards in the browser (no new request).
 - **Scholar detail** — full profile: institution, zone, h-index, email + verification status, research topics, Google Scholar/Scopus links.
+- **Chat** — ask questions about stored papers and scholars, answered by the same chatbot as the CLI (`POST /api/chat`). The conversation id is kept in `localStorage`; **New conversation** starts a fresh thread.
 
-Not in scope yet: the chatbot (still CLI-only), a production build/serving story (this is dev-mode only), and authentication.
+Not in scope yet: a production build/serving story (this is dev-mode only), and authentication.
 
 ## Setup
 
@@ -25,7 +26,7 @@ cd ../backend
 python -m reviewerfinder.cli serve
 ```
 
-Browsing works even without `OPENALEX_API_KEY` configured on the backend; running a new search will show a clear error if it's missing.
+Browsing works even without `OPENALEX_API_KEY` configured on the backend; running a new search will show a clear error if it's missing. The Chat page needs the backend's `chatbot` extra, `OPENALEX_API_KEY` and a running Ollama, and shows the server's error otherwise.
 
 ## Structure
 
@@ -45,7 +46,8 @@ src/
     ├── SearchPage.jsx
     ├── PapersPage.jsx
     ├── PaperDetailPage.jsx
-    └── ScholarDetailPage.jsx
+    ├── ScholarDetailPage.jsx
+    └── ChatPage.jsx
 ```
 
 ## Build

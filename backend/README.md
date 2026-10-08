@@ -58,6 +58,8 @@ To choose the angles yourself, pass `--manual-keyword-sets` (CLI) or `manual_key
 
 `chat` starts an interactive session (conversation history persists across runs via a SQLite checkpointer in `data/chat_sessions.db`, kept separate from the main `reviewerfinder.db`). It can look up stored scholars/papers, answer "is `<scholar>` fit to review `<paper>`?" (by calling the same deterministic rule engine the batch pipeline uses and reporting the verdict as-is, never its own judgment), list a paper's top-ranked candidates, and — after you explicitly confirm, since it spends OpenAlex budget (and needs Ollama running for keyword-set generation) — re-run discovery for a paper to find new candidates.
 
+The web UI's Chat page uses the same agent through `POST /api/chat` (see below). Each browser conversation is its own thread in the same `chat_sessions.db`.
+
 ## Data sources and their limits
 
 - **OpenAlex** (primary): topical search over works, author enrichment (h-index, recent-paper counts, institution country/type), and each author's recent open-access papers (scraped for a contact email — HTML landing pages and PDF-only papers alike).
@@ -72,9 +74,11 @@ Emails are only ever *extracted* from content that's actually fetched (an open-a
 
 `serve` runs a FastAPI app (`api/`) that's a thin layer over the same pipeline and repositories the CLI uses — no separate business logic. Browsing (`GET /api/papers`, `GET /api/papers/{id}`, `GET /api/scholars/{id}`) works with nothing configured; `POST /api/papers/search` needs `OPENALEX_API_KEY` and, unless the request includes `manual_keyword_sets`, a reachable local Ollama. It's asynchronous — it returns a job id immediately and you poll `GET /api/papers/search/{job_id}` for progress and the eventual result, since a real search (5 keyword sets, each its own multi-step pipeline) can take several minutes. This is what `../frontend/` talks to.
 
+`POST /api/chat` runs one chat turn and returns the reply directly (body: `message`, plus the `session_id` from the previous reply to continue a conversation). It needs the `chatbot` extra, `OPENALEX_API_KEY` and a running Ollama. Without the first two it returns 503 with the reason, and the rest of the API keeps working.
+
 ## Project status
 
-Phase 1 (core pipeline), Phase 2 (email discovery), Phase 3 (LangChain chatbot), a web frontend (search + browse), and keyword-set decomposition are all implemented and tested. See `../CLAUDE.md` for the phase breakdown.
+Phase 1 (core pipeline), Phase 2 (email discovery), Phase 3 (LangChain chatbot), a web frontend (search, browse and chat), keyword-set decomposition, manual keyword sets and country filters are all implemented and tested. See `../CLAUDE.md` for the phase breakdown.
 
 ## Testing
 

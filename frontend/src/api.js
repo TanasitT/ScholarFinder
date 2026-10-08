@@ -82,3 +82,10 @@ export async function pollSearchJob(jobId, onProgress, { signal } = {}) {
 export function getScholar(scholarId) {
   return request(`/scholars/${scholarId}`);
 }
+
+export function sendChatMessage(sessionId, message) {
+  return request("/chat", {
+    method: "POST",
+    body: JSON.stringify({ session_id: sessionId, message }),
+  });
+}

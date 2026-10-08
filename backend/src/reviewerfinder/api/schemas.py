@@ -101,3 +101,13 @@ class PaperSummary(BaseModel):
     title: str
     run_date: date
     passing_count: int
+
+
+class ChatMessageRequest(BaseModel):
+    session_id: str | None = None
+    message: str
+
+
+class ChatMessageResponse(BaseModel):
+    session_id: str
+    reply: str

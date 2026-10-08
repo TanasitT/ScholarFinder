@@ -71,3 +71,19 @@ def get_openalex_client(request: Request) -> OpenAlexClient:
 
 def get_semantic_scholar_client(request: Request) -> SemanticScholarClient:
     return request.app.state.semantic_scholar_client
+
+
+def get_chatbot_agent(request: Request):
+    """The chatbot agent is built once at app startup (api/app.py's
+    lifespan), not per-request -- rebuilding a ChatOllama/agent graph on
+    every chat message would be wasteful, and the checkpointer's sqlite
+    connection needs to stay open across requests so each session's
+    thread_id can see its prior turns.
+    """
+    agent = request.app.state.chat_agent
+    if agent is None:
+        raise HTTPException(
+            status_code=503,
+            detail=getattr(request.app.state, "chat_unavailable_reason", None) or "Chat is unavailable.",
+        )
+    return agent
