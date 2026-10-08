@@ -107,14 +107,21 @@ def start_search(
     db_path: Path = Depends(get_db_path),
     openalex_client: OpenAlexClient = Depends(get_openalex_client),
     s2_client: SemanticScholarClient = Depends(get_semantic_scholar_client),
-    _ollama_check: None = Depends(check_ollama_reachable),
 ) -> SearchJobStatus:
     """Kicks off a search in a background thread and returns immediately
     with a job id -- decomposing the paper into 5 keyword sets and then
     running each end-to-end can take minutes, so this can't be a single
     blocking request if the frontend wants to show progress. Poll
     GET /search/{job_id} for status.
+
+    Ollama reachability is only checked when the request doesn't supply its
+    own manual_keyword_sets -- a plain call rather than a Depends(), since
+    whether it's needed depends on the request body, which Depends() can't
+    express without duplicating the parsing.
     """
+    if body.manual_keyword_sets is None:
+        check_ollama_reachable()
+
     job = jobs.create_job()
 
     def _run() -> None:
@@ -131,6 +138,7 @@ def start_search(
                 staleness_months=settings.scholar_staleness_months,
                 max_openalex_pages=body.max_pages,
                 results_per_set=body.results_per_set,
+                manual_keyword_sets=body.manual_keyword_sets,
                 on_progress=jobs.progress_callback(job.job_id),
             )
             response = SearchResponse(

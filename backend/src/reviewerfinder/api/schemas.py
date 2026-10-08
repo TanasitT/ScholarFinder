@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import date
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from reviewerfinder.models import KeywordSet, Paper, Scholar
 
@@ -14,6 +14,27 @@ class SearchRequest(BaseModel):
     keywords: list[str] = Field(default_factory=list)
     max_pages: int = 2
     results_per_set: int = 5
+    manual_keyword_sets: list[list[str]] | None = None
+
+    @field_validator("manual_keyword_sets")
+    @classmethod
+    def _validate_manual_keyword_sets(cls, v: list[list[str]] | None) -> list[list[str]] | None:
+        if v is None:
+            return None
+        # Mirrors pipeline.py::_validate_manual_keyword_sets's bounds, checked
+        # here too so a malformed request gets a fast 422 instead of starting
+        # a background job that immediately errors out.
+        from reviewerfinder.pipeline import (
+            MAX_MANUAL_KEYWORD_SETS,
+            MIN_MANUAL_KEYWORD_SETS,
+            _validate_manual_keyword_sets,
+        )
+
+        if not (MIN_MANUAL_KEYWORD_SETS <= len(v) <= MAX_MANUAL_KEYWORD_SETS):
+            raise ValueError(
+                f"manual_keyword_sets must have {MIN_MANUAL_KEYWORD_SETS}-{MAX_MANUAL_KEYWORD_SETS} groups, got {len(v)}"
+            )
+        return _validate_manual_keyword_sets(v)
 
 
 class RankedScholar(BaseModel):

@@ -190,3 +190,60 @@ def test_run_search_survives_a_transient_error_during_one_scholars_email_hunt(mo
     assert len(result.keyword_set_results) == KEYWORD_SET_COUNT
     assert result.evaluated_count == FIXTURE_AUTHOR_COUNT * KEYWORD_SET_COUNT
     assert call_count["recent_works"] > 1
+
+
+def test_run_search_with_manual_keyword_sets_skips_ollama(mocker, db_path):
+    generate_mock = mocker.patch("reviewerfinder.pipeline.generate_keyword_sets")
+
+    works_payload = json.loads((FIXTURES / "openalex_works_sample.json").read_text())
+    author_payload = json.loads((FIXTURES / "openalex_author_sample.json").read_text())
+    oa_html = b"<html>Correspondence: jane.doe@mit.edu</html>"
+
+    client = OpenAlexClient(api_key="test-key", mailto="me@example.com")
+    mocker.patch.object(
+        client.session, "get", side_effect=_make_fake_get(works_payload, author_payload, oa_html)
+    )
+
+    result = run_search(
+        title="Deep learning for protein structure prediction",
+        abstract="We propose a transformer-based model for predicting protein folding.",
+        keywords=["protein folding", "deep learning"],
+        db_path=db_path,
+        openalex_client=client,
+        s2_client=None,
+        max_openalex_pages=1,
+        manual_keyword_sets=[["kw1a", "kw1b"], ["kw2a", "kw2b", "kw2c"]],
+    )
+
+    generate_mock.assert_not_called()
+    assert len(result.keyword_set_results) == 2
+    for i, set_result in enumerate(result.keyword_set_results, start=1):
+        assert set_result.keyword_set.source == "manual"
+        assert set_result.keyword_set.label == f"Manual set {i}"
+        assert len(set_result.passing_scholars) == FIXTURE_AUTHOR_COUNT
+
+
+def test_run_search_rejects_invalid_manual_keyword_sets(db_path):
+    client = OpenAlexClient(api_key="test-key", mailto="me@example.com")
+
+    with pytest.raises(ValueError):
+        run_search(
+            title="T",
+            abstract=None,
+            keywords=[],
+            db_path=db_path,
+            openalex_client=client,
+            s2_client=None,
+            manual_keyword_sets=[],
+        )
+
+    with pytest.raises(ValueError):
+        run_search(
+            title="T",
+            abstract=None,
+            keywords=[],
+            db_path=db_path,
+            openalex_client=client,
+            s2_client=None,
+            manual_keyword_sets=[["   ", ""]],
+        )

@@ -21,6 +21,11 @@ def search(
     keywords: str = typer.Option("", help="Comma-separated keywords"),
     results_per_set: int = typer.Option(5, help="Scholars to show per keyword set"),
     max_pages: int = typer.Option(2, help="Max OpenAlex works-search pages to fetch, per keyword set"),
+    manual_keyword_sets: str = typer.Option(
+        None,
+        help="Semicolon-separated groups of comma-separated keywords for manual search angles, "
+        "e.g. 'kw1,kw2;kw3,kw4,kw5' (1-5 groups). Skips Ollama decomposition when given.",
+    ),
 ):
     """Decomposes the paper into 5 keyword-set angles (via a local Ollama
     model), then runs the full discovery -> filter -> rank pipeline
@@ -35,6 +40,11 @@ def search(
     s2_client = SemanticScholarClient(api_key=settings.semantic_scholar_api_key)
 
     keyword_list = [k.strip() for k in keywords.split(",") if k.strip()]
+    manual_sets = (
+        [[k.strip() for k in group.split(",") if k.strip()] for group in manual_keyword_sets.split(";")]
+        if manual_keyword_sets
+        else None
+    )
 
     result = run_search(
         title=title,
@@ -48,6 +58,7 @@ def search(
         staleness_months=settings.scholar_staleness_months,
         max_openalex_pages=max_pages,
         results_per_set=results_per_set,
+        manual_keyword_sets=manual_sets,
     )
 
     typer.echo(f"\nEvaluated {result.evaluated_count} candidate scholars across {len(result.keyword_set_results)} keyword sets.\n")

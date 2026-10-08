@@ -61,6 +61,25 @@ def test_keyword_set_create_and_list_for_paper(db_path):
     assert sets[0].keywords == ["a", "b", "c"]
 
 
+def test_keyword_set_source_round_trips(db_path):
+    paper_repo = PaperRepository(db_path)
+    keyword_set_repo = KeywordSetRepository(db_path)
+    paper = paper_repo.create(Paper(title="P", run_date=date.today()))
+
+    llm_set = keyword_set_repo.create(
+        KeywordSet(paper_id=paper.id, set_index=1, label="Auto", keywords=["a", "b", "c"])
+    )
+    manual_set = keyword_set_repo.create(
+        KeywordSet(paper_id=paper.id, set_index=2, label="Manual set 2", keywords=["x", "y"], source="manual")
+    )
+
+    assert llm_set.source == "llm"
+    fetched = keyword_set_repo.list_for_paper(paper.id)
+    assert fetched[0].source == "llm"
+    assert fetched[1].source == "manual"
+    assert keyword_set_repo.get(manual_set.id).source == "manual"
+
+
 def test_keyword_set_get(db_path):
     paper_repo = PaperRepository(db_path)
     keyword_set_repo = KeywordSetRepository(db_path)

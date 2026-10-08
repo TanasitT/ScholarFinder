@@ -12,6 +12,11 @@ export default function KeywordSetResults({ keywordSetResults }) {
           <div className="keyword-set-header">
             <span className="keyword-set-title">
               Set {sr.keyword_set.set_index} — {sr.keyword_set.label}
+              {sr.keyword_set.source === "manual" && (
+                <span className="pill neutral" style={{ marginLeft: "0.5rem" }}>
+                  manual
+                </span>
+              )}
             </span>
             <span className="keyword-set-terms mono">{sr.keyword_set.keywords.join(", ")}</span>
           </div>

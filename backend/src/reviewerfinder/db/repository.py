@@ -70,6 +70,7 @@ def _keyword_set_from_row(row: dict) -> KeywordSet:
         set_index=row["set_index"],
         label=row["label"],
         keywords=json.loads(row["keywords_json"]),
+        source=row["source"],
     )
 
 
@@ -121,14 +122,15 @@ class KeywordSetRepository:
         with connect(self.db_path) as conn:
             cur = conn.execute(
                 """
-                INSERT INTO keyword_sets (paper_id, set_index, label, keywords_json)
-                VALUES (?, ?, ?, ?)
+                INSERT INTO keyword_sets (paper_id, set_index, label, keywords_json, source)
+                VALUES (?, ?, ?, ?, ?)
                 """,
                 (
                     keyword_set.paper_id,
                     keyword_set.set_index,
                     keyword_set.label,
                     json.dumps(keyword_set.keywords),
+                    keyword_set.source,
                 ),
             )
             keyword_set.id = cur.lastrowid

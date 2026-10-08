@@ -9,7 +9,6 @@ from fastapi.testclient import TestClient
 
 from reviewerfinder.api.app import app
 from reviewerfinder.api.deps import (
-    check_ollama_reachable,
     get_db_path,
     get_keyword_set_repository,
     get_match_repository,
@@ -99,7 +98,12 @@ def client(db_path, mocker):
     app.dependency_overrides[get_keyword_set_repository] = lambda: KeywordSetRepository(db_path)
     app.dependency_overrides[get_scholar_repository] = lambda: ScholarRepository(db_path)
     app.dependency_overrides[get_match_repository] = lambda: MatchRepository(db_path)
-    app.dependency_overrides[check_ollama_reachable] = lambda: None
+    # check_ollama_reachable is called as a plain function inside
+    # start_search's body (not a route Depends()) so that it can be skipped
+    # for manual-keyword-set requests -- dependency_overrides can't intercept
+    # it, so it's patched directly instead, same as any other real HTTP call
+    # this test suite must never make.
+    mocker.patch("reviewerfinder.api.routes.papers.check_ollama_reachable", return_value=None)
 
     fake_openalex = OpenAlexClient(api_key="test-key")
     fake_s2 = SemanticScholarClient()
@@ -224,6 +228,55 @@ def test_search_papers_runs_pipeline(client, mocker):
     assert first_set["passing_scholars"][0]["scholar"]["email"] == "jane.doe@mit.edu"
 
 
+def test_search_papers_with_manual_keyword_sets_skips_ollama_check(client, mocker):
+    """Proves start_search doesn't call check_ollama_reachable at all when
+    manual_keyword_sets is supplied -- the strongest signal the Depends() to
+    plain-call refactor (papers.py::start_search) is wired correctly, since
+    this test does NOT patch check_ollama_reachable at all; if it were still
+    called unconditionally, this would make a real HTTP call and likely fail
+    or hang in CI.
+    """
+    mock_check = mocker.patch("reviewerfinder.api.routes.papers.check_ollama_reachable")
+
+    works_payload = json.loads((FIXTURES / "openalex_works_sample.json").read_text())
+    author_payload = json.loads((FIXTURES / "openalex_author_sample.json").read_text())
+
+    def fake_get(url, params=None, timeout=None):
+        params = params or {}
+        if url.endswith("/works"):
+            if "filter" in params:
+                return JsonFakeResponse({"results": []})
+            return JsonFakeResponse(works_payload)
+        return JsonFakeResponse(author_payload)
+
+    client.fake_openalex.session.get = fake_get
+
+    resp = client.post(
+        "/api/papers/search",
+        json={
+            "title": "Some paper",
+            "keywords": [],
+            "max_pages": 1,
+            "manual_keyword_sets": [["deep learning", "protein folding"]],
+        },
+    )
+    assert resp.status_code == 202
+    finished = _poll_job(client, resp.json()["job_id"])
+    assert finished["status"] == "done"
+    assert len(finished["result"]["keyword_set_results"]) == 1
+    assert finished["result"]["keyword_set_results"][0]["keyword_set"]["source"] == "manual"
+
+    mock_check.assert_not_called()
+
+
+def test_search_papers_rejects_malformed_manual_keyword_sets(client):
+    resp = client.post(
+        "/api/papers/search",
+        json={"title": "Some paper", "keywords": [], "manual_keyword_sets": []},
+    )
+    assert resp.status_code == 422
+
+
 def test_search_job_unknown_id_returns_404(client):
     resp = client.get("/api/papers/search/nonexistent-job-id")
     assert resp.status_code == 404
@@ -234,7 +287,6 @@ def test_search_papers_without_openalex_key_returns_503(db_path):
     app.dependency_overrides[get_paper_repository] = lambda: PaperRepository(db_path)
     app.dependency_overrides[get_scholar_repository] = lambda: ScholarRepository(db_path)
     app.dependency_overrides[get_match_repository] = lambda: MatchRepository(db_path)
-    app.dependency_overrides[check_ollama_reachable] = lambda: None
     app.dependency_overrides.pop(get_openalex_client, None)
     app.dependency_overrides.pop(get_semantic_scholar_client, None)
 
@@ -271,7 +323,6 @@ def test_search_papers_with_ollama_unreachable_returns_503(db_path, mocker):
     app.dependency_overrides[get_match_repository] = lambda: MatchRepository(db_path)
     app.dependency_overrides[get_openalex_client] = lambda: OpenAlexClient(api_key="test-key")
     app.dependency_overrides[get_semantic_scholar_client] = lambda: SemanticScholarClient()
-    app.dependency_overrides.pop(check_ollama_reachable, None)
 
     with TestClient(app) as test_client:
         resp = test_client.post(

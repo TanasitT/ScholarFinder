@@ -56,14 +56,17 @@ CREATE TABLE IF NOT EXISTS affiliation_history (
     year_end INTEGER
 );
 
--- One paper is decomposed into 5 distinct 3-keyword search angles by
--- discovery/keyword_summarizer.py (Claude) -- see keyword_sets below.
+-- A paper's search angles: either 5 distinct 3-keyword sets a local Ollama
+-- model decomposes from the paper (discovery/keyword_summarizer.py,
+-- source='llm'), or 1-5 user-supplied manual keyword groups
+-- (pipeline.py::run_search()'s manual_keyword_sets param, source='manual').
 CREATE TABLE IF NOT EXISTS keyword_sets (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     paper_id INTEGER NOT NULL REFERENCES papers(id) ON DELETE CASCADE,
     set_index INTEGER NOT NULL,
     label TEXT NOT NULL,
     keywords_json TEXT NOT NULL,
+    source TEXT NOT NULL DEFAULT 'llm',
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     UNIQUE (paper_id, set_index)
 );

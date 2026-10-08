@@ -112,12 +112,16 @@ class PaperScholarMatch(BaseModel):
 
 
 class KeywordSet(BaseModel):
-    """One of 5 distinct 3-keyword search angles Claude derives from a
-    paper's title/abstract/keywords -- see discovery/keyword_summarizer.py.
+    """One search angle for a paper -- either one of 5 distinct 3-keyword
+    angles a local Ollama model derives from the paper's title/abstract/
+    keywords (see discovery/keyword_summarizer.py), or a user-supplied
+    manual keyword group (see pipeline.py::run_search()'s
+    manual_keyword_sets param). `source` records which, for auditability.
     """
 
     id: int | None = None
     paper_id: int | None = None
-    set_index: int  # 1..5, the order Claude proposed them in
+    set_index: int  # 1..5, the order the sets were proposed/entered in
     label: str  # short theme name, e.g. "Methodology"
-    keywords: list[str]  # exactly 3
+    keywords: list[str]  # exactly 3 for "llm"; 1-8 for "manual"
+    source: str = "llm"  # "llm" | "manual"

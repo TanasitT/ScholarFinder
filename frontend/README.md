@@ -4,7 +4,7 @@ A React + Vite single-page app for searching and browsing ScholarFinder's stored
 
 ## Scope
 
-- **New search** — submit a paper's title/abstract/keywords, with an explicit confirm step before running (since it spends OpenAlex API budget), then see the ranked results.
+- **New search** — submit a paper's title/abstract/keywords (or switch to **Enter manually** to type 1–5 keyword sets yourself, which skips Ollama), with an explicit confirm step before running (since it spends OpenAlex API budget), then see the ranked results.
 - **Past papers** — every paper searched so far, with its passing-scholar count.
 - **Paper detail** — one paper's ranked matches.
 - **Scholar detail** — full profile: institution, zone, h-index, email + verification status, research topics, Google Scholar/Scopus links.

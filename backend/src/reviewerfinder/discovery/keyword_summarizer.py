@@ -130,6 +130,8 @@ def generate_keyword_sets(
             or not all(isinstance(k, str) for k in item["keywords"])
         ):
             raise RuntimeError(f"Malformed keyword set at position {i}: {item!r}")
-        keyword_sets.append(KeywordSet(set_index=i, label=item["label"], keywords=item["keywords"]))
+        keyword_sets.append(
+            KeywordSet(set_index=i, label=item["label"], keywords=item["keywords"], source="llm")
+        )
 
     return keyword_sets

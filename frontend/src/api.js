@@ -33,7 +33,14 @@ export function getPaper(paperId) {
 // (candidate enrichment + email hunting are many sequential external HTTP
 // calls). So this doesn't return the result directly -- it starts a
 // background job and the caller polls it.
-export function startSearch({ title, abstract, keywords, maxPages = 2, resultsPerSet = 5 }) {
+export function startSearch({
+  title,
+  abstract,
+  keywords,
+  maxPages = 2,
+  resultsPerSet = 5,
+  manualKeywordSets = null,
+}) {
   return request("/papers/search", {
     method: "POST",
     body: JSON.stringify({
@@ -42,6 +49,7 @@ export function startSearch({ title, abstract, keywords, maxPages = 2, resultsPe
       keywords,
       max_pages: maxPages,
       results_per_set: resultsPerSet,
+      manual_keyword_sets: manualKeywordSets?.length ? manualKeywordSets : null,
     }),
   });
 }

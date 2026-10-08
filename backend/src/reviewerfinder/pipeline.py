@@ -28,6 +28,37 @@ from reviewerfinder.rules.ranking import rank_scholars
 
 logger = logging.getLogger(__name__)
 
+MIN_MANUAL_KEYWORD_SETS = 1
+MAX_MANUAL_KEYWORD_SETS = 5  # matches the LLM path's angle count, so downstream
+# progress-reporting/UI conventions (e.g. the "5 progress chips") stay valid.
+MAX_MANUAL_KEYWORDS_PER_SET = 8  # keeps the OpenAlex query from becoming unbounded
+
+
+def _validate_manual_keyword_sets(sets: list[list[str]]) -> list[list[str]]:
+    """Validates and cleans user-supplied manual keyword sets. Unlike the
+    LLM path (exactly 5 sets of exactly 3 keywords, enforced by a JSON
+    schema), manual sets only need sane bounds -- 1 to 5 groups, each with
+    1 to 8 non-blank keywords. Raises ValueError (a client input-validation
+    failure, not an infra failure like Ollama being unreachable) on
+    anything outside those bounds.
+    """
+    if not (MIN_MANUAL_KEYWORD_SETS <= len(sets) <= MAX_MANUAL_KEYWORD_SETS):
+        raise ValueError(
+            f"Manual keyword sets must number {MIN_MANUAL_KEYWORD_SETS}-{MAX_MANUAL_KEYWORD_SETS}, got {len(sets)}."
+        )
+
+    cleaned: list[list[str]] = []
+    for i, ks in enumerate(sets, start=1):
+        keywords = [k.strip() for k in ks if k.strip()]
+        if not keywords:
+            raise ValueError(f"Manual keyword set {i} has no non-empty keywords.")
+        if len(keywords) > MAX_MANUAL_KEYWORDS_PER_SET:
+            raise ValueError(
+                f"Manual keyword set {i} has too many keywords ({len(keywords)} > {MAX_MANUAL_KEYWORDS_PER_SET})."
+            )
+        cleaned.append(keywords)
+    return cleaned
+
 
 @dataclass
 class KeywordSetResult:
@@ -67,15 +98,18 @@ def run_search(
     staleness_months: int = 6,
     max_openalex_pages: int = 2,
     results_per_set: int = 5,
+    manual_keyword_sets: list[list[str]] | None = None,
     on_progress: Callable[[str, int, int], None] | None = None,
 ) -> SearchResult:
     """Runs the full search pipeline.
 
-    The paper's title/abstract/keywords are first decomposed by a local
-    Ollama model into 5 distinct 3-keyword search angles
-    (discovery/keyword_summarizer.py), then each angle is searched
-    independently end-to-end (discovery -> enrichment -> eligibility
-    filtering -> email hunting -> ranking), keeping its own top
+    The paper's title/abstract/keywords are, by default, decomposed by a
+    local Ollama model into 5 distinct 3-keyword search angles
+    (discovery/keyword_summarizer.py). Pass `manual_keyword_sets` (1-5
+    groups of 1-8 keywords each) to supply your own search angles instead
+    -- Ollama is not called at all in that case. Either way, each angle is
+    then searched independently end-to-end (discovery -> enrichment ->
+    eligibility filtering -> email hunting -> ranking), keeping its own top
     `results_per_set` passing scholars. Eligibility rules stay 100%
     deterministic throughout -- the LLM only shapes what gets searched
     for, it never decides who passes.
@@ -101,7 +135,14 @@ def run_search(
     )
 
     report("generating_keywords", 0, 0)
-    keyword_sets = generate_keyword_sets(paper, base_url=ollama_base_url, model=ollama_model)
+    if manual_keyword_sets is not None:
+        cleaned_sets = _validate_manual_keyword_sets(manual_keyword_sets)
+        keyword_sets = [
+            KeywordSet(set_index=i, label=f"Manual set {i}", keywords=ks, source="manual")
+            for i, ks in enumerate(cleaned_sets, start=1)
+        ]
+    else:
+        keyword_sets = generate_keyword_sets(paper, base_url=ollama_base_url, model=ollama_model)
     for ks in keyword_sets:
         ks.paper_id = paper.id
         keyword_set_repo.create(ks)

@@ -116,3 +116,9 @@ Immediately after the search-side Ollama switch, the user asked whether the chat
 - **Demo data without API keys**: `backend/scripts/seed_demo.py` loads a fictional paper and nine fictional scholars through the real rule engine and ranking, so the UI can be explored with no OpenAlex key and no Ollama. It is idempotent and writes to the gitignored `data/*.db`.
 - **Rules framed as an example policy**: the README now says the zone list, thresholds and the two unconditional country exclusions are one configurable reviewer-invitation policy, not a universal standard. Behaviour was not changed.
 - **Third-party data removed**: the wrong-person-email example (here, in `CLAUDE.md` and in the regression test) used a real-looking name and Gmail address from an actual search. Replaced with invented values (`Taylor S. Sample`, `morgan.lee@example.org`); the test's logic is unchanged.
+
+## Search controls and chat in the browser
+
+Built in late July 2026 and committed in October 2026, after the portfolio polish above.
+
+- **Manual keyword sets**: a search can take 1–5 hand-written keyword groups (1–8 keywords each) instead of the 5 Ollama-generated angles, so a search can run without Ollama or with angles chosen by the user. Because Ollama is then not needed, `start_search` checks its reachability only when no manual sets are given; that made the check depend on the request body, so it moved from a `Depends()` to a plain call in the route. Each `keyword_sets` row now records `source` (`llm` or `manual`) so a stored search shows where its angles came from. This was a schema change, so existing local databases had to be recreated (there are no migrations).

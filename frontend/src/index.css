@@ -188,6 +188,26 @@ main.page {
   background: transparent;
   color: var(--accent);
 }
+.btn.small {
+  padding: 0.32rem 0.7rem;
+  font-size: 0.78rem;
+  font-weight: 500;
+}
+
+.keyword-mode-toggle {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.manual-keyword-set-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+.manual-keyword-set-row input {
+  flex: 1;
+}
 
 /* ---------- confirm / status banners ---------- */
 .banner {
