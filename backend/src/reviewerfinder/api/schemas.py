@@ -8,13 +8,30 @@ from pydantic import BaseModel, Field, field_validator
 from reviewerfinder.models import KeywordSet, Paper, Scholar
 
 
+def _normalize_country_codes(codes: list[str] | None) -> list[str] | None:
+    if not codes:
+        return None
+    normalized = [c.strip().upper() for c in codes]
+    for code in normalized:
+        if len(code) != 2 or not code.isalpha():
+            raise ValueError(f"'{code}' is not a 2-letter ISO alpha-2 country code")
+    return normalized
+
+
 class SearchRequest(BaseModel):
     title: str
     abstract: str | None = None
     keywords: list[str] = Field(default_factory=list)
     max_pages: int = 2
-    results_per_set: int = 5
+    results_per_set: int = 10
+    allowed_countries: list[str] | None = None
+    excluded_countries: list[str] | None = None
     manual_keyword_sets: list[list[str]] | None = None
+
+    @field_validator("allowed_countries", "excluded_countries")
+    @classmethod
+    def _validate_country_codes(cls, v: list[str] | None) -> list[str] | None:
+        return _normalize_country_codes(v)
 
     @field_validator("manual_keyword_sets")
     @classmethod

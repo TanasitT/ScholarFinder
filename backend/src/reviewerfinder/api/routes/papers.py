@@ -64,7 +64,7 @@ def _build_keyword_set_results(
     keyword_set_repo: KeywordSetRepository,
     scholar_repo: ScholarRepository,
     match_repo: MatchRepository,
-    limit: int = 5,
+    limit: int = 10,
 ) -> list[KeywordSetResult]:
     results = []
     for ks in keyword_set_repo.list_for_paper(paper_id):
@@ -138,6 +138,8 @@ def start_search(
                 staleness_months=settings.scholar_staleness_months,
                 max_openalex_pages=body.max_pages,
                 results_per_set=body.results_per_set,
+                allowed_countries=body.allowed_countries,
+                excluded_countries=body.excluded_countries,
                 manual_keyword_sets=body.manual_keyword_sets,
                 on_progress=jobs.progress_callback(job.job_id),
             )

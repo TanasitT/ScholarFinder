@@ -38,7 +38,9 @@ export function startSearch({
   abstract,
   keywords,
   maxPages = 2,
-  resultsPerSet = 5,
+  resultsPerSet = 10,
+  allowedCountries = null,
+  excludedCountries = null,
   manualKeywordSets = null,
 }) {
   return request("/papers/search", {
@@ -49,6 +51,8 @@ export function startSearch({
       keywords,
       max_pages: maxPages,
       results_per_set: resultsPerSet,
+      allowed_countries: allowedCountries?.length ? allowedCountries : null,
+      excluded_countries: excludedCountries?.length ? excludedCountries : null,
       manual_keyword_sets: manualKeywordSets?.length ? manualKeywordSets : null,
     }),
   });

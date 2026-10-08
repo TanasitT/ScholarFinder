@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { pollSearchJob, startSearch } from "../api.js";
+import CountryFilterBar from "../components/CountryFilterBar.jsx";
 import KeywordSetResults from "../components/KeywordSetResults.jsx";
 import SearchProgress from "../components/SearchProgress.jsx";
 
@@ -10,6 +11,8 @@ export default function SearchPage() {
   const [title, setTitle] = useState("");
   const [abstract, setAbstract] = useState("");
   const [keywords, setKeywords] = useState("");
+  const [allowedCountries, setAllowedCountries] = useState("");
+  const [excludedCountries, setExcludedCountries] = useState("");
   const [keywordMode, setKeywordMode] = useState("auto"); // "auto" | "manual"
   const [manualSets, setManualSets] = useState([""]);
   const [confirming, setConfirming] = useState(false);
@@ -17,6 +20,7 @@ export default function SearchPage() {
   const [job, setJob] = useState(null);
   const [error, setError] = useState(null);
   const [result, setResult] = useState(null);
+  const [countryFilter, setCountryFilter] = useState(null);
 
   const abortRef = useRef(null);
 
@@ -49,6 +53,7 @@ export default function SearchPage() {
     setError(null);
     setResult(null);
     setJob(null);
+    setCountryFilter(null);
 
     abortRef.current?.abort();
     const controller = new AbortController();
@@ -58,6 +63,14 @@ export default function SearchPage() {
       const keywordList = keywords
         .split(",")
         .map((k) => k.trim())
+        .filter(Boolean);
+      const allowedList = allowedCountries
+        .split(",")
+        .map((c) => c.trim().toUpperCase())
+        .filter(Boolean);
+      const excludedList = excludedCountries
+        .split(",")
+        .map((c) => c.trim().toUpperCase())
         .filter(Boolean);
       const manualKeywordSets =
         keywordMode === "manual"
@@ -70,6 +83,8 @@ export default function SearchPage() {
         title,
         abstract: abstract || null,
         keywords: keywordList,
+        allowedCountries: allowedList,
+        excludedCountries: excludedList,
         manualKeywordSets,
       });
       setJob(started);
@@ -185,6 +200,27 @@ export default function SearchPage() {
           </div>
         )}
 
+        <div className="field">
+          <label htmlFor="allowedCountries">Only these countries</label>
+          <input
+            id="allowedCountries"
+            value={allowedCountries}
+            onChange={(e) => setAllowedCountries(e.target.value)}
+            placeholder="US, GB, DE"
+          />
+          <small>Comma-separated ISO codes. Leave blank to allow any Zone 1/2 country.</small>
+        </div>
+        <div className="field">
+          <label htmlFor="excludedCountries">Exclude these countries</label>
+          <input
+            id="excludedCountries"
+            value={excludedCountries}
+            onChange={(e) => setExcludedCountries(e.target.value)}
+            placeholder="CN, RU"
+          />
+          <small>Comma-separated ISO codes, on top of the built-in exclusion rules.</small>
+        </div>
+
         {!confirming && (
           <button type="submit" className="btn" disabled={loading}>
             Run search
@@ -216,7 +252,12 @@ export default function SearchPage() {
             {result.evaluated_count} candidates evaluated across {result.keyword_set_results.length}{" "}
             keyword sets
           </h2>
-          <KeywordSetResults keywordSetResults={result.keyword_set_results} />
+          <CountryFilterBar
+            keywordSetResults={result.keyword_set_results}
+            selected={countryFilter}
+            onChange={setCountryFilter}
+          />
+          <KeywordSetResults keywordSetResults={result.keyword_set_results} countryFilter={countryFilter} />
           <p style={{ marginTop: "1.2rem" }}>
             <Link to={`/papers/${result.paper.id}`}>View this search in past papers →</Link>
           </p>

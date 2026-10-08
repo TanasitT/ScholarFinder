@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { countryLabel } from "../countryNames.js";
 
 const ZONE_LABEL = {
   zone_1: "Zone 1",
@@ -25,14 +26,19 @@ export default function ScholarCard({ scholar, relevanceScore, rankPosition }) {
           {scholar.display_name}
         </span>
         {relevanceScore != null && (
-          <span className="score mono">score {relevanceScore.toFixed(3)}</span>
+          <span
+            className="score mono"
+            title="Topical relevance to this search angle -- how much this scholar's research topics overlap the paper's keywords/title/abstract. Used only to order results within this keyword set, never to decide eligibility. Not on a fixed 0-1 scale, so don't compare it across different searches."
+          >
+            score {relevanceScore.toFixed(3)} <span className="info-hint">(i)</span>
+          </span>
         )}
       </div>
       <div className="meta-row">
         <span>
           {scholar.current_institution_name ?? "Unknown institution"}
           {scholar.current_institution_country_code
-            ? ` (${scholar.current_institution_country_code})`
+            ? ` — ${countryLabel(scholar.current_institution_country_code)}`
             : ""}
         </span>
         <span className="pill neutral">{ZONE_LABEL[scholar.zone] ?? scholar.zone}</span>

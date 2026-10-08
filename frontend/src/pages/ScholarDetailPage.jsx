@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { getScholar } from "../api.js";
+import { countryLabel } from "../countryNames.js";
 
 const ZONE_LABEL = {
   zone_1: "Zone 1 (high trust)",
@@ -70,7 +71,10 @@ export default function ScholarDetailPage() {
             <b>Institution:</b> {scholar.current_institution_name ?? "Unknown"}
           </span>
           <span>
-            <b>Country:</b> {scholar.current_institution_country_code ?? "—"}
+            <b>Country:</b>{" "}
+            {scholar.current_institution_country_code
+              ? countryLabel(scholar.current_institution_country_code)
+              : "—"}
           </span>
           <span>
             <b>Type:</b> {scholar.current_institution_type}

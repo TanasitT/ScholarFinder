@@ -23,6 +23,7 @@ from reviewerfinder.discovery.enrichment import (
 )
 from reviewerfinder.discovery.keyword_summarizer import generate_keyword_sets
 from reviewerfinder.models import EmailVerificationStatus, KeywordSet, Paper, Scholar
+from reviewerfinder.rules.country_filter import country_filter_ok
 from reviewerfinder.rules.filters import passes_all_hard_rules
 from reviewerfinder.rules.ranking import rank_scholars
 
@@ -97,7 +98,9 @@ def run_search(
     s2_client: SemanticScholarClient | None = None,
     staleness_months: int = 6,
     max_openalex_pages: int = 2,
-    results_per_set: int = 5,
+    results_per_set: int = 10,
+    allowed_countries: list[str] | None = None,
+    excluded_countries: list[str] | None = None,
     manual_keyword_sets: list[list[str]] | None = None,
     on_progress: Callable[[str, int, int], None] | None = None,
 ) -> SearchResult:
@@ -113,6 +116,12 @@ def run_search(
     `results_per_set` passing scholars. Eligibility rules stay 100%
     deterministic throughout -- the LLM only shapes what gets searched
     for, it never decides who passes.
+
+    `allowed_countries`/`excluded_countries`, if given, further restrict
+    every keyword set's candidates to (or away from) specific ISO alpha-2
+    country codes, on top of the always-applied Zone 1/2/3 and Egypt/Saudi
+    Arabia rules (rules/country_filter.py) -- see that module for exact
+    precedence rules.
 
     `on_progress`, if given, is called as `on_progress(stage, done, total)`.
     `stage` is either "generating_keywords" (once, up front) or
@@ -168,6 +177,8 @@ def run_search(
             s2_client=s2_client,
             max_openalex_pages=max_openalex_pages,
             results_per_set=results_per_set,
+            allowed_countries=allowed_countries,
+            excluded_countries=excluded_countries,
             report=sub_report,
         )
         keyword_set_results.append(result)
@@ -186,6 +197,8 @@ def _run_for_keyword_set(
     s2_client: SemanticScholarClient | None,
     max_openalex_pages: int,
     results_per_set: int,
+    allowed_countries: list[str] | None,
+    excluded_countries: list[str] | None,
     report: Callable[[str, int, int], None],
 ) -> KeywordSetResult:
     # A throwaway Paper-shaped object carrying this set's own 3 keywords,
@@ -253,7 +266,15 @@ def _run_for_keyword_set(
     report("filtering", 0, len(scholars))
     core_passing: list[Scholar] = []
     for scholar in scholars:
-        passed, fail_reasons = passes_all_hard_rules(scholar, check_email=False)
+        hard_passed, fail_reasons = passes_all_hard_rules(scholar, check_email=False)
+        country_passed, country_reason = country_filter_ok(
+            scholar.current_institution_country_code,
+            allowed_countries=allowed_countries,
+            excluded_countries=excluded_countries,
+        )
+        if not country_passed:
+            fail_reasons.append(country_reason)
+        passed = hard_passed and country_passed
         if passed:
             core_passing.append(scholar)
         else:
@@ -291,7 +312,15 @@ def _run_for_keyword_set(
     report("ranking", 0, len(core_passing))
     passing: list[Scholar] = []
     for scholar in core_passing:
-        passed, fail_reasons = passes_all_hard_rules(scholar, check_email=True)
+        hard_passed, fail_reasons = passes_all_hard_rules(scholar, check_email=True)
+        country_passed, country_reason = country_filter_ok(
+            scholar.current_institution_country_code,
+            allowed_countries=allowed_countries,
+            excluded_countries=excluded_countries,
+        )
+        if not country_passed:
+            fail_reasons.append(country_reason)
+        passed = hard_passed and country_passed
         if passed:
             passing.append(scholar)
         else:

@@ -1,16 +1,19 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { getPaper } from "../api.js";
+import CountryFilterBar from "../components/CountryFilterBar.jsx";
 import KeywordSetResults from "../components/KeywordSetResults.jsx";
 
 export default function PaperDetailPage() {
   const { paperId } = useParams();
   const [detail, setDetail] = useState(null);
   const [error, setError] = useState(null);
+  const [countryFilter, setCountryFilter] = useState(null);
 
   useEffect(() => {
     setDetail(null);
     setError(null);
+    setCountryFilter(null);
     getPaper(paperId)
       .then(setDetail)
       .catch((err) => setError(err.message));
@@ -61,7 +64,12 @@ export default function PaperDetailPage() {
         keyword sets
       </h2>
 
-      <KeywordSetResults keywordSetResults={keywordSetResults} />
+      <CountryFilterBar
+        keywordSetResults={keywordSetResults}
+        selected={countryFilter}
+        onChange={setCountryFilter}
+      />
+      <KeywordSetResults keywordSetResults={keywordSetResults} countryFilter={countryFilter} />
     </main>
   );
 }

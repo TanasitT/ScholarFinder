@@ -19,8 +19,14 @@ def search(
     title: str = typer.Option(..., help="Paper title"),
     abstract: str = typer.Option(None, help="Paper abstract"),
     keywords: str = typer.Option("", help="Comma-separated keywords"),
-    results_per_set: int = typer.Option(5, help="Scholars to show per keyword set"),
+    results_per_set: int = typer.Option(10, help="Scholars to show per keyword set"),
     max_pages: int = typer.Option(2, help="Max OpenAlex works-search pages to fetch, per keyword set"),
+    allowed_countries: str = typer.Option(
+        "", help="Comma-separated ISO alpha-2 codes to allow (empty = no allow-list restriction)"
+    ),
+    excluded_countries: str = typer.Option(
+        "", help="Comma-separated ISO alpha-2 codes to always exclude, on top of the built-in rules"
+    ),
     manual_keyword_sets: str = typer.Option(
         None,
         help="Semicolon-separated groups of comma-separated keywords for manual search angles, "
@@ -40,6 +46,8 @@ def search(
     s2_client = SemanticScholarClient(api_key=settings.semantic_scholar_api_key)
 
     keyword_list = [k.strip() for k in keywords.split(",") if k.strip()]
+    allowed_country_list = [c.strip().upper() for c in allowed_countries.split(",") if c.strip()] or None
+    excluded_country_list = [c.strip().upper() for c in excluded_countries.split(",") if c.strip()] or None
     manual_sets = (
         [[k.strip() for k in group.split(",") if k.strip()] for group in manual_keyword_sets.split(";")]
         if manual_keyword_sets
@@ -58,6 +66,8 @@ def search(
         staleness_months=settings.scholar_staleness_months,
         max_openalex_pages=max_pages,
         results_per_set=results_per_set,
+        allowed_countries=allowed_country_list,
+        excluded_countries=excluded_country_list,
         manual_keyword_sets=manual_sets,
     )
 

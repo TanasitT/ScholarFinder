@@ -277,6 +277,52 @@ def test_search_papers_rejects_malformed_manual_keyword_sets(client):
     assert resp.status_code == 422
 
 
+def test_search_papers_rejects_invalid_country_code(client):
+    resp = client.post(
+        "/api/papers/search",
+        json={"title": "Some paper", "keywords": [], "allowed_countries": ["USA"]},
+    )
+    assert resp.status_code == 422
+
+
+def test_search_papers_respects_excluded_countries(client, mocker):
+    mocker.patch("reviewerfinder.pipeline.generate_keyword_sets", return_value=_fake_keyword_sets())
+
+    works_payload = json.loads((FIXTURES / "openalex_works_sample.json").read_text())
+    author_payload = json.loads((FIXTURES / "openalex_author_sample.json").read_text())
+    oa_html = b"<html>Correspondence: jane.doe@mit.edu</html>"
+
+    def fake_get(url, params=None, timeout=None):
+        params = params or {}
+        if url.endswith("/works"):
+            if "filter" in params:
+                return JsonFakeResponse({"results": [{"open_access": {"oa_url": OA_PAGE_URL}}]})
+            return JsonFakeResponse(works_payload)
+        if url == OA_PAGE_URL:
+            return ContentFakeResponse(oa_html)
+        return JsonFakeResponse(author_payload)
+
+    client.fake_openalex.session.get = fake_get
+
+    resp = client.post(
+        "/api/papers/search",
+        json={
+            "title": "Deep Learning for Protein Structure Prediction",
+            "keywords": ["protein folding", "deep learning"],
+            "max_pages": 1,
+            "excluded_countries": ["us"],
+        },
+    )
+    assert resp.status_code == 202
+    finished = _poll_job(client, resp.json()["job_id"])
+    assert finished["status"] == "done"
+    # The fixture author is US-based -- excluding it should drop every
+    # candidate from every keyword set.
+    assert finished["result"]["evaluated_count"] == 2 * KEYWORD_SET_COUNT
+    for set_result in finished["result"]["keyword_set_results"]:
+        assert set_result["passing_scholars"] == []
+
+
 def test_search_job_unknown_id_returns_404(client):
     resp = client.get("/api/papers/search/nonexistent-job-id")
     assert resp.status_code == 404

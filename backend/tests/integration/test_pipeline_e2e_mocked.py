@@ -247,3 +247,33 @@ def test_run_search_rejects_invalid_manual_keyword_sets(db_path):
             s2_client=None,
             manual_keyword_sets=[["   ", ""]],
         )
+
+
+def test_run_search_excludes_candidates_outside_allowed_countries(mocker, db_path):
+    mocker.patch("reviewerfinder.pipeline.generate_keyword_sets", return_value=_fake_keyword_sets())
+
+    works_payload = json.loads((FIXTURES / "openalex_works_sample.json").read_text())
+    author_payload = json.loads((FIXTURES / "openalex_author_sample.json").read_text())
+    oa_html = b"<html>Correspondence: jane.doe@mit.edu</html>"
+
+    client = OpenAlexClient(api_key="test-key", mailto="me@example.com")
+    mocker.patch.object(
+        client.session, "get", side_effect=_make_fake_get(works_payload, author_payload, oa_html)
+    )
+
+    # The fixture author's country is "US" (asserted elsewhere in this file) --
+    # excluding it should drop every candidate from every keyword set.
+    result = run_search(
+        title="Deep learning for protein structure prediction",
+        abstract="We propose a transformer-based model for predicting protein folding.",
+        keywords=["protein folding", "deep learning"],
+        db_path=db_path,
+        openalex_client=client,
+        s2_client=None,
+        max_openalex_pages=1,
+        excluded_countries=["US"],
+    )
+
+    assert result.passing_scholars == []
+    for set_result in result.keyword_set_results:
+        assert set_result.passing_scholars == []

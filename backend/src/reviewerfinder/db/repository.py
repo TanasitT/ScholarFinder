@@ -379,7 +379,7 @@ class MatchRepository:
             ).fetchall()
             return rows
 
-    def top_candidates_for_keyword_set(self, keyword_set_id: int, limit: int = 5) -> list[dict]:
+    def top_candidates_for_keyword_set(self, keyword_set_id: int, limit: int = 10) -> list[dict]:
         with connect(self.db_path) as conn:
             rows = conn.execute(
                 """

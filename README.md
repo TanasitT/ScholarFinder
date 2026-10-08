@@ -1,6 +1,6 @@
 # ScholarFinder
 
-ScholarFinder finds qualified peer reviewers for an academic paper. Give it a paper's title, abstract, and keywords; it first asks a local Ollama model to decompose the paper into 5 distinct 3-keyword search angles (or you write up to 5 angles yourself), then searches each independently and returns up to 5 candidate scholars per angle — name, institution, h-index, research topics, and a best-effort discovered email — who meet a strict set of eligibility rules. Results are stored locally so the same scholars don't need to be re-researched for the next paper. A CLI chatbot (also Ollama-powered) can answer follow-up questions like "is this scholar fit to review that paper?" against the stored data, and a web UI covers searching and browsing. No paid API key is needed anywhere in the project.
+ScholarFinder finds qualified peer reviewers for an academic paper. Give it a paper's title, abstract, and keywords; it first asks a local Ollama model to decompose the paper into 5 distinct 3-keyword search angles (or you write up to 5 angles yourself), then searches each independently and returns up to 10 candidate scholars per angle — name, institution, h-index, research topics, and a best-effort discovered email — who meet a strict set of eligibility rules. Results are stored locally so the same scholars don't need to be re-researched for the next paper. A CLI chatbot (also Ollama-powered) can answer follow-up questions like "is this scholar fit to review that paper?" against the stored data, and a web UI covers searching and browsing. No paid API key is needed anywhere in the project.
 
 > **Naming:** the project is called **ScholarFinder**. The Python package, CLI module and SQLite file still use the earlier working name `reviewerfinder` (e.g. `python -m reviewerfinder.cli`, `data/reviewerfinder.db`); they were left unchanged so imports and stored data keep working.
 
@@ -50,6 +50,8 @@ Enforced entirely in Python (`rules/filters.py`, `rules/zones.py`) — **never**
 
 These rules encode one example reviewer-invitation policy. Zone membership is editable data (`backend/data/seed/zones.yaml`); the two unconditional exclusions live in a constant in `rules/zones.py`, and the numeric thresholds in `rules/filters.py`. Adapt them to your own policy before using the tool for real invitations.
 
+On top of these, a single search can narrow candidates further with its own country allow-list and/or deny-list (`--allowed-countries` / `--excluded-countries` on the CLI, or the two country fields on the search page). These lists can only remove candidates; they never admit a country the rules above exclude. Result pages also have a country filter that just hides cards in the browser.
+
 ## Layout
 
 ```
@@ -66,7 +68,7 @@ ScholarFinder/
 │   │   ├── pipeline.py        Orchestrates the end-to-end search
 │   │   ├── clients/           Thin API clients: OpenAlex, Semantic Scholar, email verifier (no-op)
 │   │   ├── discovery/         Candidate discovery, profile enrichment, email hunting
-│   │   ├── rules/             Deterministic eligibility rules, country-zone mapping, topical ranking
+│   │   ├── rules/             Deterministic eligibility rules, country-zone mapping, per-search country filter, topical ranking
 │   │   ├── db/                SQLite schema + repository classes
 │   │   ├── chatbot/           LangChain agent, tools, and session persistence
 │   │   └── api/                FastAPI layer the frontend talks to (thin wrapper, no new logic)
@@ -109,10 +111,10 @@ External data sources: **[OpenAlex](https://openalex.org)** (primary — topical
 0. **Keyword-set decomposition** (`discovery/keyword_summarizer.py`) — a local Ollama model reads the title/abstract/keywords and proposes exactly 5 distinct 3-keyword search angles (e.g. methodology, application domain, underlying technique), persisted as `keyword_sets` rows. Malformed output fails the whole search loudly rather than proceeding with something wrong. Alternatively, supply 1–5 keyword sets of your own (`--manual-keyword-sets` on the CLI, **Enter manually** on the search page): Ollama is then skipped entirely, and the sets are stored with `source = manual` so you can tell them apart later.
 1. **Discovery** (`discovery/candidate_finder.py`) — for each set independently: searches OpenAlex works matching that set's keywords (plus the paper's title/abstract for context), collects the unique authors.
 2. **Enrichment** (`discovery/enrichment.py`) — fetches each candidate's full OpenAlex author profile (h-index, recent-paper counts, institution, country) and cross-checks against Semantic Scholar.
-3. **Core-rule filtering** (`rules/filters.py`, email not yet checked) — zone, institution type, recent-paper count, h-index. Candidates that fail here are recorded (with their specific failure reasons) and dropped before any scraping happens.
+3. **Core-rule filtering** (`rules/filters.py`, email not yet checked) — zone, institution type, recent-paper count, h-index, plus the search's own country allow/deny lists if any (`rules/country_filter.py`). Candidates that fail here are recorded (with their specific failure reasons) and dropped before any scraping happens.
 4. **Email hunt** (`discovery/email_hunter.py`) — for core-rule passers only: scrapes each scholar's recent open-access papers (HTML or PDF) for an email, falling back to their Semantic Scholar homepage. Never constructs or guesses an address.
 5. **Final filtering** — the same rule check, now including "was an email found."
-6. **Ranking** (`rules/ranking.py`) — orders each set's passers by topical relevance to that set's keywords (never used to filter, only to sort); the top 5 per set come back as the result.
+6. **Ranking** (`rules/ranking.py`) — orders each set's passers by topical relevance to that set's keywords (never used to filter, only to sort); the top 10 per set come back as the result.
 7. **Persistence** — every evaluated candidate, pass or fail, is written to SQLite (keyed by paper + keyword set + scholar) with its reasons, so the chatbot can later explain a rejection and repeat searches can reuse already-vetted scholars instead of re-querying.
 
 Steps 1–7 run once per keyword set — a search evaluates candidates from 5 independent angles (1–5 with manual sets), not one flat query.
@@ -138,6 +140,9 @@ python -m reviewerfinder.cli search --title "..." --abstract "..." --keywords "k
 
 # Same, but with your own search angles instead of Ollama's (groups separated by ";")
 python -m reviewerfinder.cli search --title "..." --manual-keyword-sets "kw1,kw2;kw3,kw4,kw5"
+
+# Narrow candidates to (or away from) specific countries, on top of the built-in rules
+python -m reviewerfinder.cli search --title "..." --keywords "kw1,kw2" --allowed-countries "DE,NL,SE" --excluded-countries "US"
 
 # Re-check scholars whose stored data is stale (default: older than 6 months)
 python -m reviewerfinder.cli refresh
@@ -170,6 +175,7 @@ Run with `pytest` from `backend/`. Unit tests (`tests/unit/`) are pure and offli
 **`tests/unit/`**
 - **`test_zones.py`** — country → trust-zone mapping. Covers Zone 1/2/3 lookups, the catch-all "unmapped country defaults to Zone 3" behavior, and — as an explicit regression guard — that Egypt and Saudi Arabia are excluded even if the yaml data file is edited to list them under an allowed zone.
 - **`test_filters.py`** — the eligibility rule functions. Boundary cases for each rule (exactly 8 recent papers passes, 7 fails; h-index exactly at the Zone 1/Zone 2 threshold; academic vs. company institution), and that `passes_all_hard_rules` reports every failing reason at once rather than stopping at the first one.
+- **`test_country_filter.py`** — the per-search country allow/deny filter: no lists passes everything, allow-list membership, deny beats allow, case-insensitivity, and how a scholar with no known country is treated.
 - **`test_ranking.py`** — topical relevance scoring. Confirms a scholar whose research topics overlap the paper ranks above an unrelated one, and that scholars with no topic data score zero rather than erroring.
 - **`test_repository.py`** — the SQLite repository layer (in a temp DB per test). Covers paper/scholar create-and-read, upsert idempotency (re-saving the same scholar updates rather than duplicates), staleness-flag computation, that match records reflect the latest re-ranking, and that a keyword set's `source` (`llm`/`manual`) round-trips.
 - **`test_pipeline_validation.py`** — bounds checking for manual keyword sets: 1–5 sets, 1–8 keywords each, whitespace stripped, blank-only sets rejected.
@@ -177,10 +183,10 @@ Run with `pytest` from `backend/`. Unit tests (`tests/unit/`) are pure and offli
 - **`test_enrichment.py`** — the `carry_over_email` helper, which prevents a scholar's core-data refresh (new h-index/institution from OpenAlex) from silently wiping a previously-discovered email.
 - **`test_chatbot_tools.py`** — each chatbot tool in isolation (via `.invoke()`, no live LLM call): scholar/paper lookup by exact ID and fuzzy name, `check_scholar_fit` matching what calling the rule engine directly would return (including that it refreshes stale scholars, via a mocked OpenAlex client, without losing their email), ranked candidate listing, and that `search_new_candidates` calls the pipeline with the stored paper's own fields.
 - **`test_keyword_summarizer.py`** — the Ollama-based keyword-set generator, with the HTTP call mocked: parses a valid 5-set response, strips a markdown code fence / surrounding prose the local model adds despite being told not to, raises a clear error when Ollama is unreachable, and raises on invalid JSON / wrong set count / wrong keyword count / missing fields rather than silently proceeding with something malformed.
-- **`test_api_papers.py`** / **`test_api_scholars.py`** — the FastAPI routes via `TestClient`, with every repository/client dependency overridden to a temp DB and mocked HTTP (nothing ever touches the real database or network): listing papers with their passing counts, grouped paper/scholar detail 404s, running a real search through the async job HTTP layer end-to-end, that search returns 503 rather than crashing when OpenAlex isn't configured or Ollama isn't reachable, and that a search with manual keyword sets never checks Ollama (malformed sets get a 422).
+- **`test_api_papers.py`** / **`test_api_scholars.py`** — the FastAPI routes via `TestClient`, with every repository/client dependency overridden to a temp DB and mocked HTTP (nothing ever touches the real database or network): listing papers with their passing counts, grouped paper/scholar detail 404s, running a real search through the async job HTTP layer end-to-end, that search returns 503 rather than crashing when OpenAlex isn't configured or Ollama isn't reachable, that a search with manual keyword sets never checks Ollama (malformed sets get a 422), and that country lists are validated (422 for a non-2-letter code) and applied.
 
 **`tests/integration/`**
 - **`test_openalex_client.py`** — the OpenAlex API client against recorded fixture JSON: works-search extracts the right author IDs, author lookup parses h-index/institution/counts-by-year, and a 404 is handled as "not found" rather than an error.
 - **`test_semantic_scholar_client.py`** — same idea for the Semantic Scholar client (author search, 404 handling).
 - **`test_email_hunter.py`** — the scraping logic: extracting an email from a fixture HTML page, from a hand-built minimal PDF (to exercise the `pypdf` code path without checking in a binary fixture), preferring a personal address over a generic one (`info@...`) when both appear on a page, and falling back to the Semantic Scholar homepage when no open-access paper yields an email.
-- **`test_pipeline_e2e_mocked.py`** — the full `search` pipeline end-to-end with keyword-set generation and every HTTP call mocked: confirms all 5 keyword sets run independently and scholars who pass core rules *and* have a discoverable email end up in each set's ranked output, and that scholars with no discoverable email anywhere are correctly excluded from every set rather than shown with a blank address. Also covers manual keyword sets: Ollama is never called, and invalid sets raise.
+- **`test_pipeline_e2e_mocked.py`** — the full `search` pipeline end-to-end with keyword-set generation and every HTTP call mocked: confirms all 5 keyword sets run independently and scholars who pass core rules *and* have a discoverable email end up in each set's ranked output, and that scholars with no discoverable email anywhere are correctly excluded from every set rather than shown with a blank address. Also covers manual keyword sets (Ollama is never called, and invalid sets raise) and an excluded country removing its candidates from every set.

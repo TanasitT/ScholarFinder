@@ -1,6 +1,6 @@
 # ScholarFinder — Backend
 
-Given a paper's title, abstract, and keywords, decomposes the paper into 5 distinct keyword-set angles (via a local Ollama model — no API key needed) and finds up to 5 qualified peer-review candidate scholars per angle: name, research topics, affiliation, and a best-effort discovered email — filtered against strict eligibility rules.
+Given a paper's title, abstract, and keywords, decomposes the paper into 5 distinct keyword-set angles (via a local Ollama model — no API key needed) and finds up to 10 qualified peer-review candidate scholars per angle: name, research topics, affiliation, and a best-effort discovered email — filtered against strict eligibility rules.
 
 All commands below assume your working directory is `backend/` (this folder).
 
@@ -13,6 +13,8 @@ All commands below assume your working directory is `backend/` (this folder).
 - H-index ≥ 5 (Zone 1) or ≥ 10 (Zone 2)
 - A discovered email address (best-effort, scraped — never guessed/constructed; ships as `unverified` until a paid verification provider is configured)
 - Identity anchored via ORCID; Google Scholar/Scopus profile links provided as manual-check convenience (not auto-verified — see below)
+
+A search can also pass its own country lists (`--allowed-countries`, `--excluded-countries`; ISO alpha-2 codes). They only narrow the rules above, never widen them (`rules/country_filter.py`).
 
 ## Setup
 
@@ -40,6 +42,7 @@ No email-verification API key is configured yet — discovered emails ship as `u
 ```
 python -m reviewerfinder.cli search --title "..." --abstract "..." --keywords "kw1,kw2,kw3"
 python -m reviewerfinder.cli search --title "..." --manual-keyword-sets "kw1,kw2;kw3,kw4"   # your own angles, no Ollama
+python -m reviewerfinder.cli search --title "..." --keywords "kw1,kw2" --allowed-countries "DE,NL" --excluded-countries "US"
 python -m reviewerfinder.cli refresh   # re-check scholars whose data is stale (default: 6+ months old)
 python -m reviewerfinder.cli chat      # interactive chatbot over stored papers/scholars
 python -m reviewerfinder.cli serve     # HTTP API on :8000 -- see ../frontend/README.md to run the web UI against it
@@ -47,7 +50,7 @@ python -m reviewerfinder.cli serve     # HTTP API on :8000 -- see ../frontend/RE
 
 ## Keyword-set decomposition
 
-Every `search` first asks a local Ollama model to decompose the paper's title/abstract/keywords into exactly 5 distinct 3-keyword search angles (e.g. methodology, application domain, underlying technique) — see `discovery/keyword_summarizer.py`. Each angle is then searched completely independently (its own discovery → enrichment → filtering → email hunt → ranking), so the output is 5 labeled groups of up to 5 scholars each, not one flat list. This is the only place an LLM influences search behavior; eligibility itself stays 100% deterministic (see below).
+Every `search` first asks a local Ollama model to decompose the paper's title/abstract/keywords into exactly 5 distinct 3-keyword search angles (e.g. methodology, application domain, underlying technique) — see `discovery/keyword_summarizer.py`. Each angle is then searched completely independently (its own discovery → enrichment → filtering → email hunt → ranking), so the output is 5 labeled groups of up to 10 scholars each, not one flat list. This is the only place an LLM influences search behavior; eligibility itself stays 100% deterministic (see below).
 
 To choose the angles yourself, pass `--manual-keyword-sets` (CLI) or `manual_keyword_sets` (API): 1–5 groups of 1–8 keywords each, groups separated by `;` on the CLI. Ollama is not called at all in that case, and the stored keyword sets are marked `source = manual`.
 
