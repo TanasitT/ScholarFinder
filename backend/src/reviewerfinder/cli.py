@@ -121,7 +121,7 @@ def chat():
         api_key=settings.require_openalex_key(), mailto=settings.openalex_mailto
     )
 
-    typer.echo("ReviewerFinder chat. Type 'exit' or 'quit' to leave.\n")
+    typer.echo("ScholarFinder chat. Type 'exit' or 'quit' to leave.\n")
     thread_config = {"configurable": {"thread_id": "cli"}}
 
     with checkpointer_context() as checkpointer:

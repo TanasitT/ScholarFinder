@@ -1,6 +1,25 @@
-# ReviewerFinder
+# ScholarFinder
 
-ReviewerFinder finds qualified peer reviewers for an academic paper. Give it a paper's title, abstract, and keywords; it first asks a local Ollama model to decompose the paper into 5 distinct 3-keyword search angles, then searches each independently and returns up to 5 candidate scholars per angle — name, institution, h-index, research topics, and a best-effort discovered email — who meet a strict set of eligibility rules. Results are stored locally so the same scholars don't need to be re-researched for the next paper. A CLI chatbot (also Ollama-powered) can answer follow-up questions like "is this scholar fit to review that paper?" against the stored data, and a web UI covers searching and browsing. No paid API key is needed anywhere in the project.
+ScholarFinder finds qualified peer reviewers for an academic paper. Give it a paper's title, abstract, and keywords; it first asks a local Ollama model to decompose the paper into 5 distinct 3-keyword search angles, then searches each independently and returns up to 5 candidate scholars per angle — name, institution, h-index, research topics, and a best-effort discovered email — who meet a strict set of eligibility rules. Results are stored locally so the same scholars don't need to be re-researched for the next paper. A CLI chatbot (also Ollama-powered) can answer follow-up questions like "is this scholar fit to review that paper?" against the stored data, and a web UI covers searching and browsing. No paid API key is needed anywhere in the project.
+
+> **Naming:** the project is called **ScholarFinder**. The Python package, CLI module and SQLite file still use the earlier working name `reviewerfinder` (e.g. `python -m reviewerfinder.cli`, `data/reviewerfinder.db`); they were left unchanged so imports and stored data keep working.
+
+## Try it in two minutes (no API keys, no Ollama)
+
+Browsing stored results needs none of the external services, so the repo ships a script that loads a small **fictional** dataset: one invented paper, five keyword-set angles and nine invented scholars. Each scholar is run through the real rule engine, so the demo shows genuine pass/fail decisions and rejection reasons (company employer, h-index too low, country not on the list, no email found).
+
+```bash
+cd backend
+python -m venv .venv
+source .venv/bin/activate                       # macOS / Linux; Windows PowerShell: .venv\Scripts\Activate.ps1
+python -m pip install -e ".[api]"
+python scripts/seed_demo.py                     # safe to re-run; it won't duplicate
+python -m reviewerfinder.cli serve              # API on :8000
+```
+
+In a second terminal: `cd frontend && npm install && npm run dev`, then open `http://localhost:5173` and go to **Past papers**.
+
+The seeded names and `@example.org` addresses are made up; no real person's data is included.
 
 ## Requirements
 
@@ -15,7 +34,7 @@ Browsing already-stored papers/scholars via `serve`/the web UI, and running the 
 
 ## Why it exists
 
-Manually vetting reviewer candidates against rules like "8+ recent papers, academic employer only, h-index above a country-dependent threshold, never from an excluded country" is slow and error-prone, especially the exclusion rules. ReviewerFinder automates the research and applies the rules deterministically and auditably — every candidate's pass/fail decision, and the reasons for it, are stored, not just the ones who made the cut.
+Manually vetting reviewer candidates against rules like "8+ recent papers, academic employer only, h-index above a country-dependent threshold, never from an excluded country" is slow and error-prone, especially the exclusion rules. ScholarFinder automates the research and applies the rules deterministically and auditably — every candidate's pass/fail decision, and the reasons for it, are stored, not just the ones who made the cut.
 
 ## Eligibility rules
 
@@ -29,12 +48,15 @@ Enforced entirely in Python (`rules/filters.py`, `rules/zones.py`) — **never**
 - A discovered email address (scraped, never guessed/constructed — see below)
 - Identity anchored via ORCID, with Google Scholar/Scopus search links included as a manual-check convenience
 
+These rules encode one example reviewer-invitation policy. Zone membership is editable data (`backend/data/seed/zones.yaml`); the two unconditional exclusions live in a constant in `rules/zones.py`, and the numeric thresholds in `rules/filters.py`. Adapt them to your own policy before using the tool for real invitations.
+
 ## Layout
 
 ```
-ReviewerFinder/
+ScholarFinder/
 ├── CLAUDE.md          Architecture/conventions notes for Claude Code
 ├── README.md          This file
+├── run.sh / run.ps1   One-command launchers (macOS/Linux, Windows)
 ├── decision.md        Chronological log of major project decisions and why
 ├── docs/               Generated HTML explainers (project overview, build plans)
 ├── backend/           CLI, pipeline, rule engine, chatbot, HTTP API
@@ -50,6 +72,7 @@ ReviewerFinder/
 │   │   └── api/                FastAPI layer the frontend talks to (thin wrapper, no new logic)
 │   ├── config/settings.py     Env-driven settings (API keys, thresholds)
 │   ├── data/seed/zones.yaml   Country → trust-zone mapping (editable data)
+│   ├── scripts/seed_demo.py   Loads a fictional demo dataset (no API keys needed)
 │   └── tests/                 Unit + integration tests (see below)
 ├── frontend/          React + Vite SPA: search form, past papers, paper/scholar detail views
 └── .claude/           Claude Code project agents/skills for developing this repo
@@ -103,7 +126,8 @@ The web frontend talks to a FastAPI layer (`api/`) that's a thin wrapper over th
 ```bash
 cd backend
 python -m venv .venv
-.venv/Scripts/activate                          # .venv\Scripts\activate on Windows cmd
+source .venv/bin/activate                       # macOS / Linux
+# .venv\Scripts\Activate.ps1                    # Windows PowerShell
 python -m pip install -e ".[dev,chatbot,api]"   # omit extras you don't need (chatbot needs LangChain, api needs FastAPI)
 cp .env.example .env                             # then fill in OPENALEX_API_KEY (required for search); also install Ollama (ollama.com) + `ollama pull llama3.1`
 ```
@@ -124,13 +148,15 @@ python -m reviewerfinder.cli serve
 
 To run the web UI, with the API above already running: `cd frontend && npm install && npm run dev`, then open the printed `localhost:5173` URL.
 
-**Windows shortcut**: once the backend venv (`backend/.venv`) and frontend (`frontend/node_modules`) are set up once as above, [`run.ps1`](run.ps1) at the repo root starts both the API (`:8000`) and the web UI (`:5173`) together in one command:
+**One-command launcher**: once the backend venv (`backend/.venv`) and frontend (`frontend/node_modules`) are set up as above, start the API (`:8000`) and the web UI (`:5173`) together. Both scripts print the process IDs and stop both cleanly on Ctrl+C.
 
-```powershell
-powershell -File run.ps1
+```bash
+./run.sh                          # macOS / Linux
 ```
 
-It prints both process IDs and stops both cleanly on Ctrl+C.
+```powershell
+powershell -File run.ps1          # Windows
+```
 
 See [`backend/README.md`](backend/README.md) for full setup details, where to get each API key, and the OpenAlex daily-credit note.
 

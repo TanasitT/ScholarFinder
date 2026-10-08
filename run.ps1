@@ -1,4 +1,4 @@
-# Starts the ReviewerFinder backend (uvicorn) and frontend (vite) together.
+# Starts the ScholarFinder backend (uvicorn) and frontend (vite) together.
 # Requires: backend/.venv already created with deps installed, frontend/node_modules installed,
 # and a running local Ollama if you intend to use search/chat.
 #

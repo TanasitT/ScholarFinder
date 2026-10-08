@@ -10,9 +10,9 @@ from config.settings import settings
 from reviewerfinder.chatbot.tools import build_tools
 from reviewerfinder.clients.openalex import OpenAlexClient
 
-SYSTEM_PROMPT = """You are the ReviewerFinder assistant. You answer questions about \
+SYSTEM_PROMPT = """You are the ScholarFinder assistant. You answer questions about \
 academic papers and candidate peer-review scholars that have already been \
-stored by the ReviewerFinder pipeline, using your tools to read that data.
+stored by the ScholarFinder pipeline, using your tools to read that data.
 
 Hard rules you must follow:
 - Eligibility is NEVER your own judgment call. For "is scholar X fit to review \

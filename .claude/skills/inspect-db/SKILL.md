@@ -1,6 +1,6 @@
 ---
 name: inspect-db
-description: Quickly inspect ReviewerFinder's local SQLite database (backend/data/reviewerfinder.db) — scholar counts by zone, stale-scholar count, recent papers — without hand-writing SQL each time. Use when the user wants to peek at stored data or debug why a search produced unexpected results.
+description: Quickly inspect ScholarFinder's local SQLite database (backend/data/reviewerfinder.db) — scholar counts by zone, stale-scholar count, recent papers — without hand-writing SQL each time. Use when the user wants to peek at stored data or debug why a search produced unexpected results.
 ---
 
 Run a quick summary using the sqlite3 CLI against `backend/data/reviewerfinder.db`:

@@ -1,6 +1,6 @@
 ---
 name: run-reviewer-search
-description: Run the ReviewerFinder search pipeline end-to-end against a title/abstract/keywords and print the ranked candidate scholars. Use for quick manual verification during development, or whenever the user wants to actually find reviewers for a paper.
+description: Run the ScholarFinder search pipeline end-to-end against a title/abstract/keywords and print the ranked candidate scholars. Use for quick manual verification during development, or whenever the user wants to actually find reviewers for a paper.
 ---
 
 Ask the user (if not already given in their message) for the paper's title, abstract, and comma-separated keywords.

@@ -1,4 +1,4 @@
-# ReviewerFinder — Backend
+# ScholarFinder — Backend
 
 Given a paper's title, abstract, and keywords, decomposes the paper into 5 distinct keyword-set angles (via a local Ollama model — no API key needed) and finds up to 5 qualified peer-review candidate scholars per angle: name, research topics, affiliation, and a best-effort discovered email — filtered against strict eligibility rules.
 
@@ -19,7 +19,8 @@ All commands below assume your working directory is `backend/` (this folder).
 ```
 cd backend
 python -m venv .venv
-.venv/Scripts/activate            # or .venv/Scripts/python.exe directly on Windows
+source .venv/bin/activate          # macOS / Linux
+# .venv\Scripts\Activate.ps1       # Windows PowerShell
 python -m pip install -e ".[dev,chatbot,api]"
 cp .env.example .env               # then fill in the keys below
 ```

@@ -1,11 +1,11 @@
 ---
 name: data-source-integrator
-description: Guides adding a new external data source client (e.g. ORCID public API, a new email-verification provider, Unpaywall) following ReviewerFinder's existing client conventions. Use when the user wants to add or replace a data source integration.
+description: Guides adding a new external data source client (e.g. ORCID public API, a new email-verification provider, Unpaywall) following ScholarFinder's existing client conventions. Use when the user wants to add or replace a data source integration.
 tools: Read, Grep, Glob, Write, Edit
 model: sonnet
 ---
 
-You add new external API integrations to ReviewerFinder, following the conventions already established in `backend/src/reviewerfinder/clients/`. All paths below are relative to `backend/`, which is where `pyproject.toml`/`.venv`/`pytest` live.
+You add new external API integrations to ScholarFinder, following the conventions already established in `backend/src/reviewerfinder/clients/`. All paths below are relative to `backend/`, which is where `pyproject.toml`/`.venv`/`pytest` live.
 
 Conventions to follow (look at `clients/openalex.py` and `clients/semantic_scholar.py` for the pattern before writing anything new):
 - One class per client (`<Name>Client`), constructor takes `api_key`/credentials plus an optional injected `requests.Session` for testability.

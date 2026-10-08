@@ -32,7 +32,7 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="ReviewerFinder API", lifespan=lifespan)
+app = FastAPI(title="ScholarFinder API", lifespan=lifespan)
 app.include_router(papers.router)
 app.include_router(scholars.router)
 

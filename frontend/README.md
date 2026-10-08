@@ -1,6 +1,6 @@
-# ReviewerFinder — Frontend
+# ScholarFinder — Frontend
 
-A React + Vite single-page app for searching and browsing ReviewerFinder's stored papers and scholars. Talks to the FastAPI backend in `../backend` — it has no logic of its own beyond presentation; every eligibility decision still happens server-side in the same deterministic rule engine the CLI uses.
+A React + Vite single-page app for searching and browsing ScholarFinder's stored papers and scholars. Talks to the FastAPI backend in `../backend` — it has no logic of its own beyond presentation; every eligibility decision still happens server-side in the same deterministic rule engine the CLI uses.
 
 ## Scope
 

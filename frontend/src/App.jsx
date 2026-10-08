@@ -9,7 +9,7 @@ export default function App() {
     <>
       <div className="topbar">
         <NavLink to="/" className="brand">
-          <strong>ReviewerFinder</strong>
+          <strong>ScholarFinder</strong>
           <span>reviewer search</span>
         </NavLink>
         <nav>

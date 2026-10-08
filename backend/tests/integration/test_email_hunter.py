@@ -123,15 +123,15 @@ def test_find_email_from_openalex_works_never_attributes_a_coauthors_email(mocke
     scholar -- that's a correctness bug (a wrong contact), not a lesser
     version of "best effort found something".
     """
-    scholar = make_scholar(display_name="James S. Fraser")
+    scholar = make_scholar(display_name="Taylor S. Sample")
     client = OpenAlexClient(api_key="test-key")
     works = [{"open_access": {"oa_url": "https://example.edu/paper1"}}]
     mocker.patch.object(client, "get_author_recent_works", return_value=works)
 
     session = mocker.Mock()
     session.get.return_value = FakeResponse(
-        b"<html>For correspondence contact erik.andersen@gmail.com "
-        b"(co-author). James Fraser did not list a direct email here.</html>",
+        b"<html>For correspondence contact morgan.lee@example.org "
+        b"(co-author). Taylor Sample did not list a direct email here.</html>",
         content_type="text/html",
     )
 

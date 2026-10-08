@@ -1,6 +1,6 @@
 ---
 name: add-data-source
-description: Scaffold a new external data source client (API wrapper) for ReviewerFinder, following the project's existing client conventions. Use when the user wants to integrate a new academic data source, email-verification provider, or similar external API.
+description: Scaffold a new external data source client (API wrapper) for ScholarFinder, following the project's existing client conventions. Use when the user wants to integrate a new academic data source, email-verification provider, or similar external API.
 ---
 
 This is a scaffolding shortcut for adding a new client under `backend/src/reviewerfinder/clients/`.
